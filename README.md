@@ -27,6 +27,7 @@ $ npm build
 
 
 ## TODO
+- [ ] look into chunking transcripts + how it works in chatgpt api if they are large
 - [ ] handle errors in between request, parsing cycle (more granular error capturing + ui)
 - [ ] use streaming fetch (SSE) for better loading ui experience
 - [ ] add option to use openai paid apis instead (alternative to chatgpt)
