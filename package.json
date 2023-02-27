@@ -1,0 +1,36 @@
+{
+  "name": "youtube-transcript-gpt",
+  "version": "0.0.1",
+  "author": "zhangted",
+  "description": "Get youtube summaries injected automatically if the video has a transcript",
+  "type": "module",
+  "license": "GNUv3",
+  "keywords": [
+    "chrome-extension",
+    "preact",
+    "vite",
+    "create-chrome-ext",
+    "youtube",
+    "chatgpt"
+  ],
+  "engines": {
+    "node": ">=14.18.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "get-video-id": "^3.6.5",
+    "preact": "^10.8.2",
+    "uuid": "^9.0.0",
+    "webextension-polyfill": "^0.10.0",
+    "youtube-browser-api": "^0.0.3"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^1.0.12",
+    "@preact/preset-vite": "^2.3.0",
+    "vite": "^2.9.13"
+  }
+}
