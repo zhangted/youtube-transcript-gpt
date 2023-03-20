@@ -45,7 +45,8 @@ export default function SummaryBox() {
           setText('error detected in youtube transcript fetch cycle (video may not have transcript)')
         })
     } else {
-      setText('no video detected')
+      // collapse the div
+      setText('')
     }
   }
 
