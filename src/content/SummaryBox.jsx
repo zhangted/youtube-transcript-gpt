@@ -33,6 +33,7 @@ export default function SummaryBox() {
     console.log(currentHref)
     const videoIdObj = getVideoId(currentHref)
     const {id, service} = videoIdObj
+    console.log(videoIdObj)
     if(service === 'youtube' && id) {
       getTranscriptRaw(id)
         .then(transcript => {
@@ -54,6 +55,8 @@ export default function SummaryBox() {
           console.error(e)
           setText('error detected in youtube transcript fetch cycle (video may not have transcript)')
         })
+    } else {
+      setText('no video detected')
     }
   }
 

@@ -3,14 +3,19 @@ import SummaryBox from './SummaryBox';
 
 console.info('the content script is running');
 
+const injectedDivs = new Set([]);
+
 function onMutation(mutations, mutationInstance) {
-  const injectPt = document.getElementById('secondary');
-  if (injectPt) {
+  const injectPts = document.querySelectorAll('#secondary');
+  //console.log(injectPts)
+  if(injectPts.length == 0) return;
+  const injectPt = injectPts[injectPts.length-1];
+  if (injectPt && !injectedDivs.has(injectPt)) {
     const summaryWrapper = document.createElement('div');
     summaryWrapper.id = 'summary-wrapper';
     render(h(SummaryBox), summaryWrapper);
     injectPt.prepend(summaryWrapper);
-    mutationInstance.disconnect();
+    injectedDivs.add(injectPt);
   }
 }
 
