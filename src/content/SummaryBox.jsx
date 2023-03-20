@@ -10,7 +10,7 @@ function parseTranscript(arr) {
   return transcript.join(' ');
 }
 
-async function getTranscriptRaw(videoId) {
+async function getTranscript(videoId) {
   return await Api.transcript
       .GET({ query: { videoId } })
       .Ok(({body}) => body)
@@ -19,36 +19,25 @@ async function getTranscriptRaw(videoId) {
       .then(parseTranscript)
 }
 
-function SummaryBoxState() {
-  const [text, setText] = useState('loading');
-  return { text, setText }
-}
-
 export default function SummaryBox() {
-  const { text, setText } = SummaryBoxState()
+  const [text, setText] = useState('loading');
   const prevUrlRef= useRef(window.location.href);
 
   const runParseFetchPrintTranscriptCycle = (currentHref) => {
     setText('loading')
-    console.log(currentHref)
-    const videoIdObj = getVideoId(currentHref)
-    const {id, service} = videoIdObj
-    console.log(videoIdObj)
+    const {id, service} = getVideoId(currentHref)
+    console.log(currentHref, id, service)
     if(service === 'youtube' && id) {
-      getTranscriptRaw(id)
+      getTranscript(id)
         .then(transcript => {
-          console.log(transcript)
-  
           // Send a message to the background script and process it
           Browser.runtime.sendMessage({
             type: 'VIDEO_TRANSCRIPT',
             data: { transcript }
-          }).then((response) => {
-            setText(response)
-            console.log('Response received:', response);
-          }).catch((error) => {
+          }).then(setText)
+          .catch((error) => {
             console.error('Error sending message:', error);
-            setText(`error detected in openAI request cycle (rate limited, not logged in, or parsing issue from response).`)
+            setText(`error detected in openAI request cycle (rate limited, not logged in, transcript too lengthy, or parsing issue from response).`)
           });
         })
         .catch((e) => {

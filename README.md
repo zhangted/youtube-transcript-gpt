@@ -7,8 +7,7 @@
 ## Installing
 
 1. Check if your `Node.js` version is >= **14**.
-2. Change or configurate the name of your extension on `src/manifest`.
-3. Run `npm install` to install the dependencies.
+2. Run `npm install` to install the dependencies.
 
 ## Developing
 
@@ -23,8 +22,7 @@ $ npm build
 ### Chrome Extension Developer Mode
 
 1. set your Chrome browser 'Developer mode' up
-2. click 'Load unpacked', and select `youtube-gpt-2/build` folder
-
+2. click 'Load unpacked', and select `youtube-transcript-gpt/build` folder
 
 ## TODO
 - [ ] handle errors in between request, parsing cycle (more granular error capturing + ui)

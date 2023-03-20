@@ -7,7 +7,6 @@ const injectedDivs = new Set([]);
 
 function onMutation(mutations, mutationInstance) {
   const injectPts = document.querySelectorAll('#secondary');
-  //console.log(injectPts)
   if(injectPts.length == 0) return;
   const injectPt = injectPts[injectPts.length-1];
   if (injectPt && !injectedDivs.has(injectPt)) {
