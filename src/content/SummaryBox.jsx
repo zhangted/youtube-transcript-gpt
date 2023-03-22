@@ -33,8 +33,10 @@ export default function SummaryBox() {
           // Send a message to the background script and process it
           Browser.runtime.sendMessage({
             type: 'VIDEO_TRANSCRIPT',
-            data: { transcript }
-          }).then(setText)
+            data: { transcript, href: currentHref }
+          }).then(gptResponse => {
+            if(gptResponse !== '') setText(gptResponse);
+          })
           .catch((error) => {
             console.error('Error sending message:', error);
             setText(`error detected in openAI request cycle (rate limited, not logged in, transcript too lengthy, or parsing issue from response).`)

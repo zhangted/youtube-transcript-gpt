@@ -30,3 +30,4 @@ $ npm build
 - [ ] add option to use openai paid apis instead (alternative to chatgpt)
 - [ ] convert to typescript
 - [ ] add additional context into the query from the youtube page properties
+- [x] limit spam req - cache last url of video transcript used to sent query to openai api

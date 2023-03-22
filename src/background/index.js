@@ -3,7 +3,9 @@ console.log('the bg script is running')
 import Browser from 'webextension-polyfill';
 import { v4 as uuidv4 } from 'uuid';
 
-function get_headers(token) {
+const lastHref = { value: '' } //cache last href used to send data to openai api to "rate limit" repetitive reqs
+
+function getHeaders(token) {
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
@@ -13,33 +15,13 @@ function get_headers(token) {
 async function hideConversationInGptUI(conversationId, token) {
   return await fetch(`https://chat.openai.com/backend-api/conversation/${conversationId}`, {
     method: 'PATCH',
-    headers: get_headers(token),
+    headers: getHeaders(token),
     body: JSON.stringify({ is_visible: false })
   })
 }
 
-async function askChatGPT(query, token) {
-  const r = await fetch('https://chat.openai.com/backend-api/conversation', {
-    method: 'POST',
-    headers: get_headers(token),
-    body: JSON.stringify({
-      action: 'next',
-      messages: [
-        {
-          id: uuidv4(),
-          role: 'user',
-          content: {
-            content_type: 'text',
-            parts: [query],
-          },
-        },
-      ],
-      model: 'text-davinci-002-render',
-      parent_message_id: uuidv4(),
-    })}).then(res=>res.text())
-
-  // TODO: replace with SSE fetch
-  const answerArr = r.split('\n')
+function parseOkGptResponse(text) {
+  const answerArr = text.split('\n')
   let answerObj = null;
   let doneMarkerFound=false;
   while(answerArr.length > 0 && answerObj === null) {
@@ -62,19 +44,54 @@ async function askChatGPT(query, token) {
   }
 }
 
+function parseBadResponse(errObj) {
+  const { detail } = errObj;
+  const { message, code } = detail; // TODO: do something with the err code
+  return { gptResponse: message, conversationId: null };
+}
+
+async function askChatGPT(query, token) {
+  // TODO: replace with SSE fetch
+  return await fetch('https://chat.openai.com/backend-api/conversation', {
+    method: 'POST',
+    headers: getHeaders(token),
+    body: JSON.stringify({
+      action: 'next',
+      messages: [
+        {
+          id: uuidv4(),
+          role: 'user',
+          content: {
+            content_type: 'text',
+            parts: [query],
+          },
+        },
+      ],
+      model: 'text-davinci-002-render',
+      parent_message_id: uuidv4(),
+    })}).then(async(res)=>{
+      if(!res.ok) return parseBadResponse(await res.json()) // TODO: handle some edge cases here in more detail
+      return parseOkGptResponse(await res.text())
+    })
+}
+
 // Listen for messages from the content script
 Browser.runtime.onMessage.addListener(async(message, sender, sendResponse) =>{
   if (message.type === 'VIDEO_TRANSCRIPT') {
     console.log('Message received:', message);
-    const { transcript } = message.data;
+    const { transcript, href } = message.data;
+
+    if(href === lastHref.value) return ''; //console.log(lastHref.value, `curHref:${href}`);
+    lastHref.value = href;
+
     const resp = await fetch('https://chat.openai.com/api/auth/session')
     if (resp.status === 403) throw new Error('CLOUDFLARE')
     const data = await resp.json().catch(() => ({}))
-    const {accessToken} = data;
-    //console.log('openai access token', accessToken)
+    const {accessToken} = data; //console.log('openai access token', accessToken);
+
     const query = `summarize this youtube transcript in 150 words or less: ${transcript}`;
     const {gptResponse, conversationId} = await askChatGPT(query, accessToken);
-    hideConversationInGptUI(conversationId, accessToken)
+    if(conversationId !== null) hideConversationInGptUI(conversationId, accessToken)
     return gptResponse
   }
 });
