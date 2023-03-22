@@ -35,7 +35,7 @@ export default function SummaryBox() {
             type: 'VIDEO_TRANSCRIPT',
             data: { transcript, href: currentHref }
           }).then(gptResponse => {
-            if(gptResponse !== '') setText(gptResponse);
+            if(['',null].indexOf(gptResponse) === -1) setText(gptResponse);
           })
           .catch((error) => {
             console.error('Error sending message:', error);
