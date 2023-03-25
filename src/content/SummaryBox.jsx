@@ -1,80 +1,68 @@
 import getVideoId from 'get-video-id';
-import Api from 'youtube-browser-api';
-import Browser from 'webextension-polyfill'
+import browser from 'webextension-polyfill'
+import transcripts from './transcripts';
 import { useState, useEffect, useRef } from 'preact/hooks'
 import Spinner from './Spinner'
 
-function parseTranscript(arr) {
-  const transcript = []
-  arr.forEach(({ text }) => transcript.push(text))
-  return transcript.join(' ');
+function getYoutubeVideoId(currentHref) {
+  const {id, service} = getVideoId(currentHref)
+  return (service==='youtube' && id) ? id : '';
 }
 
-async function getTranscript(videoId) {
-  return await Api.transcript
-      .GET({ query: { videoId } })
-      .Ok(({body}) => body)
-      .then(({body}) => body)
-      .then(({videoId}) => videoId)
-      .then(parseTranscript)
+const getBgScriptResponse = (message) => {
+  if(message.type === 'GPT_RESPONSE') {
+    const { gptResponse, youtubeVideoId } = message;
+    if(!getYoutubeVideoId(window.location.href) === youtubeVideoId) return ''
+    return gptResponse;
+  }
+  else if(message.type === 'NO_TRANSCRIPT') {
+    return transcripts.NO_TRANSCRIPT_VALUE;
+  }
 }
 
 export default function SummaryBox() {
   const [text, setText] = useState('loading');
+  const hideSelf = () => setText('');
+  const setBgScriptResponse = (message) => setText(getBgScriptResponse(message))
+  const finishedLoading = ['', 'loading'].indexOf(text) == -1;
   const prevUrlRef= useRef(window.location.href);
 
-  const runParseFetchPrintTranscriptCycle = (currentHref) => {
+  const getTranscriptAndSendToBgScript = (currentHref) => {
     setText('loading')
-    const {id, service} = getVideoId(currentHref)
-    console.log(currentHref, id, service)
-    if(service === 'youtube' && id) {
-      getTranscript(id)
-        .then(transcript => {
-          // Send a message to the background script and process it
-          Browser.runtime.sendMessage({
-            type: 'VIDEO_TRANSCRIPT',
-            data: { transcript, href: currentHref }
-          }).then(gptResponse => {
-            if(['',null].indexOf(gptResponse) === -1) setText(gptResponse);
-          })
-          .catch((error) => {
-            console.error('Error sending message:', error);
-            setText(`error detected in openAI request cycle (rate limited, not logged in, transcript too lengthy, or parsing issue from response).`)
-          });
-        })
-        .catch((e) => {
-          console.error(e)
-          setText('error detected in youtube transcript fetch cycle (video may not have transcript)')
-        })
-    } else {
-      // collapse the div
-      setText('')
-    }
+    const youtubeVideoId = getYoutubeVideoId(currentHref);
+    if(!youtubeVideoId) return hideSelf();
+    transcripts.sendToBgScript(youtubeVideoId)
   }
+  const refreshSummary = () => getTranscriptAndSendToBgScript(window.location.href)
 
   useEffect(() => {
+    // Setup "backend"
+    const port = browser.runtime.connect()
+    transcripts.setBgScriptPort(port);
+    port.onMessage.addListener(setBgScriptResponse);
+    refreshSummary();
+
     // Watch for changes to the href attribute of links
-    const observer = new MutationObserver((mutationsList) => {
-      for (let mutation of mutationsList) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'href') {
-          const newlocation = window.location.href;
-          if(newlocation !== prevUrlRef.current) {
-            prevUrlRef.current = newlocation
-            runParseFetchPrintTranscriptCycle(window.location.href);
-          }
-        }
+    const observer = new MutationObserver(([{ type, attributeName }]) => {
+      if(type === 'attributes' && attributeName === 'href' && window.location.href !== prevUrlRef.current) {
+        prevUrlRef.current = window.location.href;
+        refreshSummary();
       }
     });
     observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['href'] });
 
-    runParseFetchPrintTranscriptCycle(window.location.href)
-
     return () => {
+      port.onMessage.removeListener(setBgScriptResponse);
+      port.disconnect();
       observer.disconnect();
     };
   }, []);
 
-  const Wrapper = ({elements}) => <div style={{backgroundColor:'black', color:'white', fontSize:'18px', borderRadius:'4px', padding:'6px', marginBottom:'4px'}}>{elements}</div> 
+  const wrapperCssAttrs = {backgroundColor:'black', color:'white', fontSize:'18px', borderRadius:'4px', padding:'6px', marginBottom:'4px'};
+  const Wrapper = ({elements}) => <div style={wrapperCssAttrs}>
+    {elements}
+    {finishedLoading && <button onClick={refreshSummary}>Refresh</button>}
+  </div> 
 
   if(text === 'loading') return <Wrapper elements={[<Spinner />, 'loading transcript + chatgpt response']} />
   return <Wrapper elements={text} />

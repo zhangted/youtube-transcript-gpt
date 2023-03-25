@@ -3,8 +3,6 @@ console.log('the bg script is running')
 import Browser from 'webextension-polyfill';
 import { v4 as uuidv4 } from 'uuid';
 
-const lastHref = { value: '' } //cache last href used to send data to openai api to "rate limit" repetitive reqs
-
 function getHeaders(token) {
   return {
     'Content-Type': 'application/json',
@@ -75,23 +73,31 @@ async function askChatGPT(query, token) {
     })
 }
 
-// Listen for messages from the content script
-Browser.runtime.onMessage.addListener(async(message, sender, sendResponse) =>{
-  if (message.type === 'VIDEO_TRANSCRIPT') {
-    console.log('Message received:', message);
-    const { transcript, href } = message.data;
+const lastGptResponse = { youtubeVideoId:'', gptResponse:null }
 
-    if(href === lastHref.value) return ''; //console.log(lastHref.value, `curHref:${href}`);
-    lastHref.value = href;
+Browser.runtime.onConnect.addListener((port) => {
+  port.onMessage.addListener(async(message) =>{
+    if(message.type === 'VIDEO_TRANSCRIPT') {
+      console.log('Message received:', message);
+      const { transcript, youtubeVideoId } = message.data;
 
-    const resp = await fetch('https://chat.openai.com/api/auth/session')
-    if (resp.status === 403) throw new Error('CLOUDFLARE')
-    const data = await resp.json().catch(() => ({}))
-    const {accessToken} = data; //console.log('openai access token', accessToken);
+      if(youtubeVideoId === lastGptResponse.youtubeVideoId) {
+        port.postMessage({type:'GPT_RESPONSE', ...lastGptResponse })
+      }
 
-    const query = `summarize this youtube transcript in 150 words or less: ${transcript}`;
-    const {gptResponse, conversationId} = await askChatGPT(query, accessToken);
-    if(conversationId !== null) hideConversationInGptUI(conversationId, accessToken)
-    return gptResponse
-  }
-});
+      const resp = await fetch('https://chat.openai.com/api/auth/session')
+      if (resp.status === 403) throw new Error('CLOUDFLARE')
+      const data = await resp.json().catch(() => ({}))
+      const {accessToken} = data;
+
+      const query = `summarize this youtube transcript in 150 words or less: ${transcript}.`;
+      const {gptResponse, conversationId} = await askChatGPT(query, accessToken);
+      if(conversationId !== null) hideConversationInGptUI(conversationId, accessToken)
+
+      lastGptResponse.youtubeVideoId = youtubeVideoId;
+      lastGptResponse.gptResponse = gptResponse;
+      port.postMessage({type:'GPT_RESPONSE', ...lastGptResponse })
+    }
+    if(message.type==='NO_TRANSCRIPT') port.postMessage({type:message.type})
+  });
+})

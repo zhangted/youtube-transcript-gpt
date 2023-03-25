@@ -1,9 +1,9 @@
 import { defineManifest } from '@crxjs/vite-plugin'
 
 export default defineManifest({
-  name: 'create-chrome-ext',
-  description: '',
-  version: '0.0.0',
+  name: 'youtube-transcript-gpt',
+  description: 'Get youtube summaries by chatgpt injected automatically if the video has a transcript! ',
+  version: '0.0.1',
   manifest_version: 3,
   icons: {
     16: 'img/logo-16.png',
