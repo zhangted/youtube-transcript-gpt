@@ -1,6 +1,7 @@
 import Api from 'youtube-browser-api';
 
 const NO_TRANSCRIPT_VALUE = 'This video does not have a transcript';
+const NO_VIDEO_ID_VALUE = '';
 
 function Transcripts() {
   this.map = new Map();
@@ -29,16 +30,18 @@ Transcripts.prototype = {
   setBgScriptPort: function(port) { 
     this.port = port
   },
-  sendToBgScript: async function(youtubeVideoId) {
+  sendToBgScript: async function(youtubeVideoId, eventType) {
     const transcript = await this.getTranscript(youtubeVideoId);
     if(transcript === NO_TRANSCRIPT_VALUE) return this.port.postMessage({ type: 'NO_TRANSCRIPT' })
+    if(transcript === NO_VIDEO_ID_VALUE) return this.port.postMessage({ type: 'NO_VIDEO_ID' })
     this.port.postMessage({
       type: 'VIDEO_TRANSCRIPT',
-      data: { transcript, youtubeVideoId }
+      data: { transcript, youtubeVideoId, eventType }
     })
   }
 }
 
 const transcripts = new Transcripts();
 transcripts.NO_TRANSCRIPT_VALUE = NO_TRANSCRIPT_VALUE;
+transcripts.NO_VIDEO_ID_VALUE = NO_VIDEO_ID_VALUE;
 export default transcripts;

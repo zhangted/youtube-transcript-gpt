@@ -1,43 +1,47 @@
 import getVideoId from 'get-video-id';
-import browser from 'webextension-polyfill'
+import Browser from 'webextension-polyfill'
 import transcripts from './transcripts';
-import { useState, useEffect, useRef } from 'preact/hooks'
+import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
 import Spinner from './Spinner'
 
-function getYoutubeVideoId(currentHref) {
+function getYoutubeVideoId(currentHref = window.location.href) {
   const {id, service} = getVideoId(currentHref)
   return (service==='youtube' && id) ? id : '';
+}
+
+const getTranscriptAndSendToBgScript = (eventType = null) => {
+  const youtubeVideoId = getYoutubeVideoId(window.location.href);
+  transcripts.sendToBgScript(youtubeVideoId, eventType)
 }
 
 const getBgScriptResponse = (message) => {
   if(message.type === 'GPT_RESPONSE') {
     const { gptResponse, youtubeVideoId } = message;
-    if(!getYoutubeVideoId(window.location.href) === youtubeVideoId) return ''
-    return gptResponse;
+    if(getYoutubeVideoId() === youtubeVideoId) return gptResponse
+    return getTranscriptAndSendToBgScript();
   }
   else if(message.type === 'NO_TRANSCRIPT') {
     return transcripts.NO_TRANSCRIPT_VALUE;
+  }
+  else if(message.type === 'NO_VIDEO_ID') {
+    return transcripts.NO_VIDEO_ID_VALUE;
   }
 }
 
 export default function SummaryBox() {
   const [text, setText] = useState('loading');
-  const hideSelf = () => setText('');
-  const setBgScriptResponse = (message) => setText(getBgScriptResponse(message))
   const finishedLoading = ['', 'loading'].indexOf(text) == -1;
   const prevUrlRef= useRef(window.location.href);
 
-  const getTranscriptAndSendToBgScript = (currentHref) => {
+  const setBgScriptResponse = useCallback((message) => setText(getBgScriptResponse(message)), [])
+  const refreshSummary = useCallback((event) => {
     setText('loading')
-    const youtubeVideoId = getYoutubeVideoId(currentHref);
-    if(!youtubeVideoId) return hideSelf();
-    transcripts.sendToBgScript(youtubeVideoId)
-  }
-  const refreshSummary = () => getTranscriptAndSendToBgScript(window.location.href)
+    getTranscriptAndSendToBgScript(event?.type)
+  }, [])
 
   useEffect(() => {
     // Setup "backend"
-    const port = browser.runtime.connect()
+    const port = Browser.runtime.connect()
     transcripts.setBgScriptPort(port);
     port.onMessage.addListener(setBgScriptResponse);
     refreshSummary();
@@ -59,11 +63,11 @@ export default function SummaryBox() {
   }, []);
 
   const wrapperCssAttrs = {backgroundColor:'black', color:'white', fontSize:'18px', borderRadius:'4px', padding:'6px', marginBottom:'4px'};
-  const Wrapper = ({elements}) => <div style={wrapperCssAttrs}>
+  const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
-    {finishedLoading && <button onClick={refreshSummary}>Refresh</button>}
-  </div> 
+    {finishedLoading && <div style={{margin:'5px 0 0 0'}}><button onClick={refreshSummary}>Refresh</button></div>}
+  </div>, [finishedLoading])
 
-  if(text === 'loading') return <Wrapper elements={[<Spinner />, 'loading transcript + chatgpt response']} />
+  if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />
 }

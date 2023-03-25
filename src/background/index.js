@@ -73,31 +73,33 @@ async function askChatGPT(query, token) {
     })
 }
 
-const lastGptResponse = { youtubeVideoId:'', gptResponse:null }
+const lastGptResponse = { youtubeVideoId: '', gptResponse:null }
+
+async function handleVideoTranscriptMsg(port, message) {
+  const { transcript, youtubeVideoId, eventType } = message.data;
+
+  if(eventType !== 'click' && youtubeVideoId === lastGptResponse.youtubeVideoId) {
+    return port.postMessage({type:'GPT_RESPONSE', ...lastGptResponse })
+  }
+
+  const resp = await fetch('https://chat.openai.com/api/auth/session')
+  if (resp.status === 403) throw new Error('CLOUDFLARE')
+  const data = await resp.json().catch(() => ({}))
+  const {accessToken} = data;
+
+  const query = `summarize this youtube transcript in 150 words or less: ${transcript}.`;
+  const {gptResponse, conversationId} = await askChatGPT(query, accessToken);
+  if(conversationId !== null) hideConversationInGptUI(conversationId, accessToken)
+
+  lastGptResponse.youtubeVideoId = youtubeVideoId;
+  lastGptResponse.gptResponse = gptResponse;
+  return port.postMessage({type:'GPT_RESPONSE', ...lastGptResponse })
+}
 
 Browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async(message) =>{
-    if(message.type === 'VIDEO_TRANSCRIPT') {
-      console.log('Message received:', message);
-      const { transcript, youtubeVideoId } = message.data;
-
-      if(youtubeVideoId === lastGptResponse.youtubeVideoId) {
-        port.postMessage({type:'GPT_RESPONSE', ...lastGptResponse })
-      }
-
-      const resp = await fetch('https://chat.openai.com/api/auth/session')
-      if (resp.status === 403) throw new Error('CLOUDFLARE')
-      const data = await resp.json().catch(() => ({}))
-      const {accessToken} = data;
-
-      const query = `summarize this youtube transcript in 150 words or less: ${transcript}.`;
-      const {gptResponse, conversationId} = await askChatGPT(query, accessToken);
-      if(conversationId !== null) hideConversationInGptUI(conversationId, accessToken)
-
-      lastGptResponse.youtubeVideoId = youtubeVideoId;
-      lastGptResponse.gptResponse = gptResponse;
-      port.postMessage({type:'GPT_RESPONSE', ...lastGptResponse })
-    }
-    if(message.type==='NO_TRANSCRIPT') port.postMessage({type:message.type})
+    console.log('Message received:', message);
+    if(message.type === 'VIDEO_TRANSCRIPT') return await handleVideoTranscriptMsg(port, message);
+    return port.postMessage({type: message.type})
   });
 })
