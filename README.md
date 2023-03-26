@@ -16,7 +16,7 @@ $ npm run dev
 ```
 ## Packing
 ```shell
-$ npm build
+$ npm run build
 ```
 
 ### Chrome Extension Developer Mode
@@ -25,8 +25,9 @@ $ npm build
 2. click 'Load unpacked', and select `youtube-transcript-gpt/build` folder
 
 ## TODO
-- [ ] handle errors in between request, parsing cycle (more granular error capturing + ui)
-- [ ] use streaming fetch (SSE) for better loading ui experience
+- [x] handle errors in between request, parsing cycle (more granular error capturing + ui)
+- [x] use streaming fetch (SSE) for better loading ui experience
+- [ ] how to deal with / chunk super long transcripts
 - [ ] add option to use openai paid apis instead (alternative to chatgpt)
 - [ ] convert to typescript
 - [ ] add additional context into the query from the youtube page properties

@@ -9,41 +9,48 @@ function getYoutubeVideoId(currentHref = window.location.href) {
   return (service==='youtube' && id) ? id : '';
 }
 
-const getTranscriptAndSendToBgScript = (eventType = null) => {
+const getTranscriptAndSendToBgScript = () => {
   const youtubeVideoId = getYoutubeVideoId(window.location.href);
-  transcripts.sendToBgScript(youtubeVideoId, eventType)
+  transcripts.sendToBgScript(youtubeVideoId)
 }
 
-const getBgScriptResponse = (message) => {
+const getTextToInsert = (message) => {
   if(message.type === 'GPT_RESPONSE') {
     const { gptResponse, youtubeVideoId } = message;
     if(getYoutubeVideoId() === youtubeVideoId) return gptResponse
-    return getTranscriptAndSendToBgScript();
   }
   else if(message.type === 'NO_TRANSCRIPT') {
     return transcripts.NO_TRANSCRIPT_VALUE;
   }
-  else if(message.type === 'NO_VIDEO_ID') {
-    return transcripts.NO_VIDEO_ID_VALUE;
+  else if(message.type === 'NO_ACCESS_TOKEN') {
+    return 'Please login to OpenAI to access ChatGPT'
   }
+  return '';
 }
 
 export default function SummaryBox() {
   const [text, setText] = useState('loading');
-  const finishedLoading = ['', 'loading'].indexOf(text) == -1;
+  const [showRefresh, setShowRefresh] = useState(false);
   const prevUrlRef= useRef(window.location.href);
 
-  const setBgScriptResponse = useCallback((message) => setText(getBgScriptResponse(message)), [])
-  const refreshSummary = useCallback((event) => {
+  const listenForBgScriptResponse = useCallback((message) => {
+    if(message.type === 'STREAMING_END') return setShowRefresh(true);
+    setShowRefresh(false);
+    setText(getTextToInsert(message));
+    if(['NO_TRANSCRIPT', 'NO_ACCESS_TOKEN'].includes(message.type)) setShowRefresh(true)
+  }, [])
+
+  const refreshSummary = useCallback((e) => {
     setText('loading')
-    getTranscriptAndSendToBgScript(event?.type)
+    setShowRefresh(false);
+    getTranscriptAndSendToBgScript()
   }, [])
 
   useEffect(() => {
     // Setup "backend"
     const port = Browser.runtime.connect()
     transcripts.setBgScriptPort(port);
-    port.onMessage.addListener(setBgScriptResponse);
+    port.onMessage.addListener(listenForBgScriptResponse);
     refreshSummary();
 
     // Watch for changes to the href attribute of links
@@ -56,17 +63,17 @@ export default function SummaryBox() {
     observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['href'] });
 
     return () => {
-      port.onMessage.removeListener(setBgScriptResponse);
+      port.onMessage.removeListener(listenForBgScriptResponse);
       port.disconnect();
       observer.disconnect();
     };
   }, []);
 
-  const wrapperCssAttrs = {backgroundColor:'black', color:'white', fontSize:'18px', borderRadius:'4px', padding:'6px', marginBottom:'4px'};
+  const wrapperCssAttrs = {backgroundColor:'black', color:'white', fontSize:'18px', borderRadius:'4px', padding:'8px', marginBottom:'4px' };
   const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
-    {finishedLoading && <div style={{margin:'5px 0 0 0'}}><button onClick={refreshSummary}>Refresh</button></div>}
-  </div>, [finishedLoading])
+    {showRefresh && <div style={{margin:'5px 0 0 0'}}><button onClick={refreshSummary}>Refresh</button></div>}
+  </div>, [showRefresh])
 
   if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />
