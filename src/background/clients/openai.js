@@ -52,7 +52,7 @@ export async function askChatGPT(transcript, abortSignal, sendToReactComponent =
     if(text) return sendToReactComponent(text);
   };
 
-  const query = `summarize this youtube transcript in 150 words or less: ${transcript}`;
+  const query = `Summarize this youtube transcript in 150 words or less (use people's names if needed but do not make assumptions): ${transcript}`;
   return await subscribeToSSE(CONVO_ENDPOINT, {
     method: 'POST',
     signal: abortSignal,
@@ -74,7 +74,10 @@ export async function askChatGPT(transcript, abortSignal, sendToReactComponent =
       is_visible: false,
     })
   }, onMessage)
-    .catch(err=>err);
+    .catch(err => {
+      if (err.name === "AbortError") return;
+      sendToReactComponent(err.toString())
+    });
 }
 
 // Synchronous conversation (Non SSE fetch)

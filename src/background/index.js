@@ -12,11 +12,7 @@ async function handleVideoTranscriptMsg(port, message) {
   const sendToReactComponent = (gptResponse) => port.postMessage({ type: 'GPT_RESPONSE', youtubeVideoId, gptResponse})
   const handleInvalidCreds = () => port.postMessage({ type: 'NO_ACCESS_TOKEN' })
 
-  await askChatGPT(transcript, controller.signal, sendToReactComponent, handleInvalidCreds)
-    .catch(err => {
-      if (err.name === "AbortError") return;
-      sendToReactComponent(err.toString())
-    });
+  await askChatGPT(transcript, controller.signal, sendToReactComponent, handleInvalidCreds);
 
   port.postMessage({ type: 'STREAMING_END' })
 }
