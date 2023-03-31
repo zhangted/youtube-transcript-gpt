@@ -44,7 +44,7 @@ export default function SummaryBox() {
   }, [])
 
   const refreshSummary = useCallback((e) => {
-    setText('loading')
+    setText(getOnMountText())
     setShowRefresh(false);
     getTranscriptAndSendToBgScript()
   }, []);

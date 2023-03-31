@@ -5,12 +5,23 @@ console.info('the content script is running');
 
 let prevUrl = null;
 
+function createPixel() {
+  let pixel = document.createElement('div');
+  pixel.style.width = "1px";
+  pixel.style.height = "1px";
+  return pixel;
+}
+
 function updateSummaryWrapper() {
   const injectPts = document.querySelectorAll('#secondary');
   for (const injectPt of injectPts) {
     injectPt.querySelector('#summary-wrapper')?.remove();
 
-    if (injectPt.offsetWidth > 0) {
+    let pixel = createPixel();
+    injectPt.prepend(pixel)
+
+    if (injectPt.offsetWidth > 0 && pixel.offsetWidth > 0) {
+      pixel.remove();
       const summaryWrapper = document.createElement('div');
       summaryWrapper.id = 'summary-wrapper';
       render(h(SummaryBox), summaryWrapper);
