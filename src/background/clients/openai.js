@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import subscribeToSSE from './SSE';
-import MapExpire from 'map-expire/MapExpire';
+import ExpiryMap from 'expiry-map';
 
 const BASE_URL = 'https://chat.openai.com'
 const AUTH_ENDPOINT = `${BASE_URL}/api/auth/session`
@@ -14,13 +14,14 @@ async function getAccessToken() {
   return data?.accessToken??exit()
 }
 
-const accessToken = new MapExpire([], { capacity: 1, duration: 60 * 2 * 1000 })
+const ACCESS_TOKEN_KEY = 'openai_api_key'
+const expirymap = new ExpiryMap(60 * 2 * 1000)
 
 async function setupAccessToken() {
   try {
-    let token = accessToken.get('value');
+    let token = expirymap.get(ACCESS_TOKEN_KEY);
     if(token === undefined) token = await getAccessToken()
-    accessToken.set('value', token);
+    expirymap.set(ACCESS_TOKEN_KEY, token)
     return JSON.parse(JSON.stringify(token))
   } catch(e) {
     console.error(e)

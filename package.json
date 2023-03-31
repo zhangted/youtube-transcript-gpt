@@ -1,6 +1,6 @@
 {
   "name": "youtube-transcript-gpt",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "zhangted",
   "description": "Get youtube summaries injected automatically if the video has a transcript",
   "type": "module",
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "eventsource-parser": "^1.0.0",
+    "expiry-map": "^2.0.0",
     "get-video-id": "^3.6.5",
     "map-expire": "^1.0.2",
     "preact": "^10.8.2",

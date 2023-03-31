@@ -1,9 +1,8 @@
 import Api from 'youtube-browser-api';
-
-const NO_TRANSCRIPT_VALUE = 'This video does not have a transcript';
+import ExpiryMap from 'expiry-map';
 
 function Transcripts() {
-  this.map = new Map();
+  this.map = new ExpiryMap(60 * 6 * 1000);
   this.port = undefined;
 }
 
@@ -22,7 +21,7 @@ Transcripts.prototype = {
       .then(({body}) => body)
       .then(({videoId}) => videoId)
       .then(this.parseTranscript)
-      .catch(() => NO_TRANSCRIPT_VALUE)
+      .catch(() => '')
     this.map.set(videoId, transcript)
     return transcript;
   },
@@ -30,10 +29,9 @@ Transcripts.prototype = {
     this.port = port
   },
   sendToBgScript: async function(youtubeVideoId) {
-    if(youtubeVideoId === '') return this.port.postMessage({ type: 'NO_VIDEO_ID' })
+    if(youtubeVideoId === '') return;
     const transcript = await this.getTranscript(youtubeVideoId);
-    if(transcript === NO_TRANSCRIPT_VALUE) return this.port.postMessage({ type: 'NO_TRANSCRIPT' })
-    this.port.postMessage({
+    return this.port.postMessage({
       type: 'VIDEO_TRANSCRIPT',
       data: { transcript, youtubeVideoId }
     })
@@ -41,5 +39,4 @@ Transcripts.prototype = {
 }
 
 const transcripts = new Transcripts();
-transcripts.NO_TRANSCRIPT_VALUE = NO_TRANSCRIPT_VALUE;
 export default transcripts;

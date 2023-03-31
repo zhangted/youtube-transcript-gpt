@@ -4,6 +4,10 @@ import transcripts from './transcripts';
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
 import Spinner from './Spinner'
 
+function getOnMountText() {
+  return window.location.href === 'https://www.youtube.com/' ? '' : 'loading'
+}
+
 function getYoutubeVideoId(currentHref = window.location.href) {
   const {id, service} = getVideoId(currentHref)
   return (service==='youtube' && id) ? id : '';
@@ -11,7 +15,7 @@ function getYoutubeVideoId(currentHref = window.location.href) {
 
 const getTranscriptAndSendToBgScript = () => {
   const youtubeVideoId = getYoutubeVideoId(window.location.href);
-  transcripts.sendToBgScript(youtubeVideoId)
+  if(youtubeVideoId !== '') transcripts.sendToBgScript(youtubeVideoId)
 }
 
 const getTextToInsert = (message) => {
@@ -19,32 +23,31 @@ const getTextToInsert = (message) => {
     const { gptResponse, youtubeVideoId } = message;
     if(getYoutubeVideoId() === youtubeVideoId) return gptResponse
   }
-  else if(message.type === 'NO_TRANSCRIPT') {
-    return transcripts.NO_TRANSCRIPT_VALUE;
-  }
   else if(message.type === 'NO_ACCESS_TOKEN') {
     return 'Please login to OpenAI to access ChatGPT'
+  }
+  else if(message.type === 'NO_TRANSCRIPT') {
+    return 'Video has no transcript'
   }
   return '';
 }
 
 export default function SummaryBox() {
-  const [text, setText] = useState('loading');
+  const [text, setText] = useState(getOnMountText());
   const [showRefresh, setShowRefresh] = useState(false);
-  const prevUrlRef= useRef(window.location.href);
 
   const listenForBgScriptResponse = useCallback((message) => {
     if(message.type === 'STREAMING_END') return setShowRefresh(true);
     setShowRefresh(false);
     setText(getTextToInsert(message));
-    if(['NO_TRANSCRIPT', 'NO_ACCESS_TOKEN'].includes(message.type)) setShowRefresh(true)
+    if(['NO_TRANSCRIPT','NO_ACCESS_TOKEN'].includes(message.type)) setShowRefresh(true)
   }, [])
 
   const refreshSummary = useCallback((e) => {
     setText('loading')
     setShowRefresh(false);
     getTranscriptAndSendToBgScript()
-  }, [])
+  }, []);
 
   useEffect(() => {
     // Setup "backend"
@@ -53,19 +56,9 @@ export default function SummaryBox() {
     port.onMessage.addListener(listenForBgScriptResponse);
     refreshSummary();
 
-    // Watch for changes to the href attribute of links
-    const observer = new MutationObserver(([{ type, attributeName }]) => {
-      if(type === 'attributes' && attributeName === 'href' && window.location.href !== prevUrlRef.current) {
-        prevUrlRef.current = window.location.href;
-        refreshSummary();
-      }
-    });
-    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['href'] });
-
     return () => {
       port.onMessage.removeListener(listenForBgScriptResponse);
       port.disconnect();
-      observer.disconnect();
     };
   }, []);
 

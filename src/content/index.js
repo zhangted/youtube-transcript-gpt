@@ -3,24 +3,45 @@ import SummaryBox from './SummaryBox';
 
 console.info('the content script is running');
 
-let lastInjectedWrapper;
+let prevUrl = null;
 
-function onMutationYoutube(mutations) {
+function updateSummaryWrapper() {
   const injectPts = document.querySelectorAll('#secondary');
-  const injectPt = injectPts[injectPts.length - 1];
-  if (!injectPt || lastInjectedWrapper?.parentNode === injectPt) return;
-  if (lastInjectedWrapper) lastInjectedWrapper.remove();
+  for (const injectPt of injectPts) {
+    injectPt.querySelector('#summary-wrapper')?.remove();
 
-  const summaryWrapper = document.createElement('div');
-  summaryWrapper.id = 'summary-wrapper';
-  render(h(SummaryBox), summaryWrapper);
-  injectPt.prepend(summaryWrapper);
-
-  lastInjectedWrapper = summaryWrapper;
+    if (injectPt.offsetWidth > 0) {
+      const summaryWrapper = document.createElement('div');
+      summaryWrapper.id = 'summary-wrapper';
+      render(h(SummaryBox), summaryWrapper);
+      injectPt.prepend(summaryWrapper);
+    }
+  }
 }
 
-const observer = new MutationObserver(onMutationYoutube);
-observer.observe(document, {
-  childList: true,
-  subtree: true,
-});
+function tryUpdateSummaryWrapper() {
+  if (prevUrl !== window.location.href) {
+    prevUrl = window.location.href;
+    updateSummaryWrapper();
+  }
+}
+
+(new MutationObserver(([{ type, attributeName }]) => {
+  if(type === 'attributes' && attributeName === 'href') tryUpdateSummaryWrapper()
+})).observe(
+  document,
+  { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] }
+);
+
+window.addEventListener('popstate', tryUpdateSummaryWrapper);
+window.addEventListener('hashchange', tryUpdateSummaryWrapper);
+
+function waitForSecondary() {
+  if (document.getElementById('secondary')) {
+    return tryUpdateSummaryWrapper();
+  } else {
+    setTimeout(waitForSecondary, 100);
+  }
+}
+
+waitForSecondary();
