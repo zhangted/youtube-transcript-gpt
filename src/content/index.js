@@ -41,7 +41,7 @@ function tryUpdateSummaryWrapper() {
   if(type === 'attributes' && attributeName === 'href') tryUpdateSummaryWrapper()
 })).observe(
   document,
-  { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] }
+  { subtree: true, attributes: true, attributeFilter: ['href'] }
 );
 
 window.addEventListener('popstate', tryUpdateSummaryWrapper);

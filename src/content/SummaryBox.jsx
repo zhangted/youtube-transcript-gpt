@@ -4,13 +4,13 @@ import transcripts from './transcripts';
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
 import Spinner from './Spinner'
 
-function getOnMountText() {
-  return window.location.href === 'https://www.youtube.com/' ? '' : 'loading'
-}
-
 function getYoutubeVideoId(currentHref = window.location.href) {
   const {id, service} = getVideoId(currentHref)
   return (service==='youtube' && id) ? id : '';
+}
+
+function getOnMountText() {
+  return getYoutubeVideoId() === '' ? '' : 'loading'
 }
 
 const getTranscriptAndSendToBgScript = () => {
