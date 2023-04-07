@@ -1,17 +1,17 @@
 import getVideoId from 'get-video-id';
 import Browser from 'webextension-polyfill'
 import transcripts from './transcripts';
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
+import { useState, useEffect, useCallback } from 'preact/hooks'
 import Spinner from './Spinner'
 
-function getOnMountText() {
-  return window.location.href === 'https://www.youtube.com/' ? '' : 'loading'
-}
-
-function getYoutubeVideoId(currentHref = window.location.href) {
+const getYoutubeVideoId = (currentHref = window.location.href) => {
   const {id, service} = getVideoId(currentHref)
   return (service==='youtube' && id) ? id : '';
 }
+
+const getOnMountText = () => getYoutubeVideoId() === '' ? '' : 'loading'
+
+const calcIsDarkMode = () => document.querySelector('html[dark]') !== null;
 
 const getTranscriptAndSendToBgScript = () => {
   const youtubeVideoId = getYoutubeVideoId(window.location.href);
@@ -35,6 +35,7 @@ const getTextToInsert = (message) => {
 export default function SummaryBox() {
   const [text, setText] = useState(getOnMountText());
   const [showRefresh, setShowRefresh] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(calcIsDarkMode());
 
   const listenForBgScriptResponse = useCallback((message) => {
     if(message.type === 'STREAMING_END') return setShowRefresh(true);
@@ -62,11 +63,15 @@ export default function SummaryBox() {
     };
   }, []);
 
-  const wrapperCssAttrs = {backgroundColor:'black', color:'white', fontSize:'18px', borderRadius:'4px', padding:'8px', marginBottom:'4px' };
+  const ToggleThemeButton = useCallback(() => <button onClick={e=>setIsDarkMode(!isDarkMode)}>{isDarkMode?'Light':'Dark'} mode</button>, [isDarkMode])
+
+  const wrapperCssAttrs = {backgroundColor: isDarkMode ? '#0f0f0f' : '#e8e8e8', color: isDarkMode ? 'white' : 'black', fontSize:'18px', borderRadius:'4px', padding:'8px', marginBottom:'4px' };
+
   const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
-    {showRefresh && <div style={{margin:'5px 0 0 0'}}><button onClick={refreshSummary}>Refresh</button></div>}
-  </div>, [showRefresh])
+    {showRefresh && <div style={{margin:'5px 0 0 0'}}><button onClick=
+    {refreshSummary}>Refresh</button>&nbsp;<ToggleThemeButton /></div>}
+  </div>, [text, showRefresh, ToggleThemeButton])
 
   if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />
