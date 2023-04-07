@@ -36,7 +36,6 @@ export default defineManifest({
       matches: [],
     },
   ],
-  permissions: ["storage"],
   host_permissions: ["https://*.openai.com/"],
   "content_security_policy": {
     "extension_pages": "default-src 'self'; connect-src https://* data: blob: filesystem:;"

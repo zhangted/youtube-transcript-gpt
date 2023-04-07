@@ -20,20 +20,21 @@ function updateSummaryWrapper() {
     let pixel = createPixel();
     injectPt.prepend(pixel)
 
-    if (injectPt.offsetWidth > 0 && pixel.offsetWidth > 0) {
-      pixel.remove();
+    if (pixel.offsetWidth > 0) {
       const summaryWrapper = document.createElement('div');
       summaryWrapper.id = 'summary-wrapper';
       render(h(SummaryBox), summaryWrapper);
       injectPt.prepend(summaryWrapper);
     }
+
+    pixel.remove();
   }
 }
 
 function tryUpdateSummaryWrapper() {
   if (prevUrl !== window.location.href) {
     prevUrl = window.location.href;
-    updateSummaryWrapper();
+    setTimeout(updateSummaryWrapper, 500);
   }
 }
 
@@ -41,18 +42,12 @@ function tryUpdateSummaryWrapper() {
   if(type === 'attributes' && attributeName === 'href') tryUpdateSummaryWrapper()
 })).observe(
   document,
-  { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] }
+  { subtree: true, attributes: true, attributeFilter: ['href'] }
 );
 
-window.addEventListener('popstate', tryUpdateSummaryWrapper);
-window.addEventListener('hashchange', tryUpdateSummaryWrapper);
-
 function waitForSecondary() {
-  if (document.getElementById('secondary')) {
-    return tryUpdateSummaryWrapper();
-  } else {
-    setTimeout(waitForSecondary, 100);
-  }
+  document.getElementById('secondary') ? 
+    tryUpdateSummaryWrapper() : setTimeout(waitForSecondary, 100);
 }
 
 waitForSecondary();
