@@ -1,7 +1,7 @@
 import getVideoId from 'get-video-id';
 import Browser from 'webextension-polyfill'
 import transcripts from './transcripts';
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
+import { useState, useEffect, useCallback } from 'preact/hooks'
 import Spinner from './Spinner'
 
 const getYoutubeVideoId = (currentHref = window.location.href) => {
@@ -11,7 +11,7 @@ const getYoutubeVideoId = (currentHref = window.location.href) => {
 
 const getOnMountText = () => getYoutubeVideoId() === '' ? '' : 'loading'
 
-const calcIsDarkMode = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+const calcIsDarkMode = () => document.querySelector('html[dark]') !== null;
 
 const getTranscriptAndSendToBgScript = () => {
   const youtubeVideoId = getYoutubeVideoId(window.location.href);
@@ -63,15 +63,15 @@ export default function SummaryBox() {
     };
   }, []);
 
-  const ToggleDarkModeButton = () => <button onClick={e=>setIsDarkMode(!isDarkMode)}>{isDarkMode?'Light':'Dark'} mode</button>
+  const ToggleThemeButton = useCallback(() => <button onClick={e=>setIsDarkMode(!isDarkMode)}>{isDarkMode?'Light':'Dark'} mode</button>, [isDarkMode])
 
-  const wrapperCssAttrs = {backgroundColor: isDarkMode?'black':'white', color: isDarkMode?'white':'black', fontSize:'18px', borderRadius:'4px', padding:'8px', marginBottom:'4px' };
+  const wrapperCssAttrs = {backgroundColor: isDarkMode ? '#0f0f0f' : '#e8e8e8', color: isDarkMode ? 'white' : 'black', fontSize:'18px', borderRadius:'4px', padding:'8px', marginBottom:'4px' };
 
   const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
     {showRefresh && <div style={{margin:'5px 0 0 0'}}><button onClick=
-    {refreshSummary}>Refresh</button>&nbsp;<ToggleDarkModeButton /></div>}
-  </div>, [text, showRefresh, isDarkMode])
+    {refreshSummary}>Refresh</button>&nbsp;<ToggleThemeButton /></div>}
+  </div>, [text, showRefresh, ToggleThemeButton])
 
   if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />
