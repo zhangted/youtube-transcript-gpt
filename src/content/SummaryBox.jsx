@@ -1,21 +1,26 @@
 import getVideoId from 'get-video-id';
 import Browser from 'webextension-polyfill'
-import transcripts from './transcripts';
+import { getYoutubeTranscript, YoutubeTranscript } from './transcripts';
 import { useState, useEffect, useCallback } from 'preact/hooks'
 import Spinner from './Spinner'
+
+const getOnMountText = () => getYoutubeVideoId() === '' ? '' : 'loading'
+const calcIsDarkMode = () => document.querySelector('html[dark]') !== null;
 
 const getYoutubeVideoId = (currentHref = window.location.href) => {
   const {id, service} = getVideoId(currentHref)
   return (service==='youtube' && id) ? id : '';
 }
 
-const getOnMountText = () => getYoutubeVideoId() === '' ? '' : 'loading'
-
-const calcIsDarkMode = () => document.querySelector('html[dark]') !== null;
-
-const getTranscriptAndSendToBgScript = () => {
-  const youtubeVideoId = getYoutubeVideoId(window.location.href);
-  if(youtubeVideoId !== '') transcripts.sendToBgScript(youtubeVideoId)
+const sendTranscriptToBgScript = (port, transcriptInstance) => { 
+  return port.postMessage({
+    type: 'VIDEO_TRANSCRIPT',
+    data: { 
+      transcript: transcriptInstance.transcriptParts,
+      transcriptPartId: transcriptInstance.activeTranscriptPartId,
+      youtubeVideoId: transcriptInstance.youtubeVideoId 
+    }
+  });
 }
 
 const getTextToInsert = (message) => {
@@ -33,9 +38,26 @@ const getTextToInsert = (message) => {
 }
 
 export default function SummaryBox() {
+  const [port,] = useState(Browser.runtime.connect())
   const [text, setText] = useState(getOnMountText());
+  const [youtubeTranscript, setYoutubeTranscript] = useState(new YoutubeTranscript({ transcriptParts: [], youtubeVideoId: '' }))
   const [showRefresh, setShowRefresh] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(calcIsDarkMode());
+
+  const setYoutubeTranscriptAndSendToBgScript = (transcriptInstance) => {
+    setYoutubeTranscript(transcriptInstance)
+    sendTranscriptToBgScript(port, transcriptInstance)
+  }
+
+  const prevPageButton = useCallback(() => youtubeTranscript?.activeTranscriptPartId > 0 && <button onClick={e=>{
+    youtubeTranscript.activeTranscriptPartId -= 1
+    setYoutubeTranscriptAndSendToBgScript(youtubeTranscript);
+  }}>Prev Page</button>, [youtubeTranscript]);
+
+  const nextPageButton = useCallback(() => youtubeTranscript?.transcriptParts?.length > 0 && youtubeTranscript?.activeTranscriptPartId < youtubeTranscript.transcriptParts.length-1 && <button onClick={e=>{
+    youtubeTranscript.activeTranscriptPartId += 1
+    setYoutubeTranscriptAndSendToBgScript(youtubeTranscript);
+  }}>Next Page</button>, [youtubeTranscript]);
 
   const listenForBgScriptResponse = useCallback((message) => {
     if(message.type === 'STREAMING_END') return setShowRefresh(true);
@@ -44,18 +66,20 @@ export default function SummaryBox() {
     if(['NO_TRANSCRIPT','NO_ACCESS_TOKEN'].includes(message.type)) setShowRefresh(true)
   }, [])
 
-  const refreshSummary = useCallback((e) => {
+  const getVideoIdAndTranscriptObject = useCallback(async() => {
+    const youtubeVideoId = getYoutubeVideoId(window.location.href);
+    return await getYoutubeTranscript(youtubeVideoId);
+  }, [])
+
+  const getTranscriptAndSendToBgScript = useCallback(async() => {
     setText(getOnMountText())
     setShowRefresh(false);
-    getTranscriptAndSendToBgScript()
-  }, []);
+    setYoutubeTranscriptAndSendToBgScript(await getVideoIdAndTranscriptObject());
+  }, [])
 
   useEffect(() => {
-    // Setup "backend"
-    const port = Browser.runtime.connect()
-    transcripts.setBgScriptPort(port);
     port.onMessage.addListener(listenForBgScriptResponse);
-    refreshSummary();
+    getTranscriptAndSendToBgScript();
 
     return () => {
       port.onMessage.removeListener(listenForBgScriptResponse);
@@ -69,9 +93,15 @@ export default function SummaryBox() {
 
   const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
-    {showRefresh && <div style={{margin:'5px 0 0 0'}}><button onClick=
-    {refreshSummary}>Refresh</button>&nbsp;<ToggleThemeButton /></div>}
-  </div>, [text, showRefresh, ToggleThemeButton])
+    <div>
+      {showRefresh && prevPageButton()}
+      {showRefresh && nextPageButton()}
+      {showRefresh && youtubeTranscript?.transcriptParts?.length > 1 && `${youtubeTranscript.activeTranscriptPartId+1} / ${youtubeTranscript?.transcriptParts?.length}`}
+    </div>
+    {showRefresh && <div style={{margin:'5px 0 0 0'}}>
+      <button onClick={sendTranscriptToBgScript}>Refresh</button>&nbsp;<ToggleThemeButton />
+    </div>}
+  </div>, [text, showRefresh, ToggleThemeButton, prevPageButton, nextPageButton])
 
   if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />
