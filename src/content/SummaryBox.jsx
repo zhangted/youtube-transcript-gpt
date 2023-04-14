@@ -1,8 +1,9 @@
+import '../assets/SummaryBox.css'
 import getVideoId from 'get-video-id';
 import Browser from 'webextension-polyfill'
 import { getYoutubeTranscript, YoutubeTranscript } from './transcripts';
 import { useState, useEffect, useCallback } from 'preact/hooks'
-import Spinner from './Spinner'
+import { ArrowClockwise, ArrowLeftSquareIcon, ArrowRightSquareIcon, MoonIcon, Spinner, SunIcon } from './icons'
 
 const getOnMountText = () => getYoutubeVideoId() === '' ? '' : 'loading'
 const calcIsDarkMode = () => document.querySelector('html[dark]') !== null;
@@ -12,15 +13,15 @@ const getYoutubeVideoId = (currentHref = window.location.href) => {
   return (service==='youtube' && id) ? id : '';
 }
 
-const sendTranscriptToBgScript = (port, transcriptInstance) => { 
-  return port.postMessage({
+const sendTranscriptToBgScript = (port, transcriptInstance) => {
+  return port.postMessage(transcriptInstance.hasTranscript() ? {
     type: 'VIDEO_TRANSCRIPT',
-    data: { 
+    data: {
       transcript: transcriptInstance.transcriptParts,
       transcriptPartId: transcriptInstance.activeTranscriptPartId,
       youtubeVideoId: transcriptInstance.youtubeVideoId 
     }
-  });
+  } : { type: 'NO_TRANSCRIPT' })
 }
 
 const getTextToInsert = (message) => {
@@ -44,20 +45,10 @@ export default function SummaryBox() {
   const [showRefresh, setShowRefresh] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(calcIsDarkMode());
 
-  const setYoutubeTranscriptAndSendToBgScript = (transcriptInstance) => {
+  const setYoutubeTranscriptAndSendToBgScript = useCallback((transcriptInstance) => {
     setYoutubeTranscript(transcriptInstance)
     sendTranscriptToBgScript(port, transcriptInstance)
-  }
-
-  const prevPageButton = useCallback(() => youtubeTranscript?.activeTranscriptPartId > 0 && <button onClick={e=>{
-    youtubeTranscript.activeTranscriptPartId -= 1
-    setYoutubeTranscriptAndSendToBgScript(youtubeTranscript);
-  }}>Prev Page</button>, [youtubeTranscript]);
-
-  const nextPageButton = useCallback(() => youtubeTranscript?.transcriptParts?.length > 0 && youtubeTranscript?.activeTranscriptPartId < youtubeTranscript.transcriptParts.length-1 && <button onClick={e=>{
-    youtubeTranscript.activeTranscriptPartId += 1
-    setYoutubeTranscriptAndSendToBgScript(youtubeTranscript);
-  }}>Next Page</button>, [youtubeTranscript]);
+  }, [])
 
   const listenForBgScriptResponse = useCallback((message) => {
     if(message.type === 'STREAMING_END') return setShowRefresh(true);
@@ -87,21 +78,27 @@ export default function SummaryBox() {
     };
   }, []);
 
-  const ToggleThemeButton = useCallback(() => <button onClick={e=>setIsDarkMode(!isDarkMode)}>{isDarkMode?'Light':'Dark'} mode</button>, [isDarkMode])
+  const PrevPageButton = useCallback(() => youtubeTranscript.hasPrevPage() && <button onClick={
+    e=>youtubeTranscript.prevPage({ callback: setYoutubeTranscriptAndSendToBgScript })}><ArrowLeftSquareIcon /></button>, [youtubeTranscript]);
 
-  const wrapperCssAttrs = {backgroundColor: isDarkMode ? '#0f0f0f' : '#e8e8e8', color: isDarkMode ? 'white' : 'black', fontSize:'18px', borderRadius:'4px', padding:'8px', marginBottom:'4px' };
+  const NextPageButton = useCallback(() => youtubeTranscript.hasNextPage() && <button onClick={
+    e=>youtubeTranscript.nextPage({ callback: setYoutubeTranscriptAndSendToBgScript })}><ArrowRightSquareIcon /></button>, [youtubeTranscript]);
+
+  const ToggleThemeButton = useCallback(() => <button onClick={e=>setIsDarkMode(!isDarkMode)}>{isDarkMode?<SunIcon />:<MoonIcon />}</button>, [isDarkMode])
+
+  const wrapperCssAttrs = {backgroundColor: isDarkMode ? '#0f0f0f' : '#e8e8e8', color: isDarkMode ? 'white' : 'black', fontSize:'18px', borderRadius:'4px', padding:'19px', marginBottom:'5px'};
 
   const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
-    <div>
-      {showRefresh && prevPageButton()}
-      {showRefresh && nextPageButton()}
-      {showRefresh && youtubeTranscript?.transcriptParts?.length > 1 && `${youtubeTranscript.activeTranscriptPartId+1} / ${youtubeTranscript?.transcriptParts?.length}`}
-    </div>
-    {showRefresh && <div style={{margin:'5px 0 0 0'}}>
-      <button onClick={sendTranscriptToBgScript}>Refresh</button>&nbsp;<ToggleThemeButton />
+    {showRefresh && <div style={{margin:'5px 0 5px 0'}}>
+      <div>{youtubeTranscript.getPageIndicatorStr()}</div>
+      <PrevPageButton />&nbsp;
+      <NextPageButton />
+      <div style={{float:'right'}}>
+        <button onClick={e=>setYoutubeTranscriptAndSendToBgScript(youtubeTranscript)}><ArrowClockwise /></button>&nbsp;<ToggleThemeButton />
+      </div>
     </div>}
-  </div>, [text, showRefresh, ToggleThemeButton, prevPageButton, nextPageButton])
+  </div>, [text, showRefresh, ToggleThemeButton, PrevPageButton, NextPageButton])
 
   if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />

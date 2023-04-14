@@ -59,7 +59,7 @@ export async function askChatGPT(
     if(text) return sendToReactComponent(text);
   };
 
-  const query = `Summarize this youtube transcript (page ${transcriptPartId+1}) in 150 words or less (use people's names if needed but do not make assumptions): ${transcript[transcriptPartId]}`;
+  const query = `Summarize this youtube transcript (refer to it as page ${transcriptPartId+1} of ${transcript.length}) in 150 words or less (use peoples' names if needed but do not make assumptions): ${transcript[transcriptPartId]}`;
   return await subscribeToSSE(CONVO_ENDPOINT, {
     method: 'POST',
     signal: abortSignal,
