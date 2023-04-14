@@ -36,7 +36,13 @@ function getHeaders(token) {
   }
 }
 
-export async function askChatGPT(transcript, abortSignal, sendToReactComponent = (responseText) => null, handleInvalidCreds = () => null) {
+export async function askChatGPT(
+  transcript,
+  transcriptPartId,
+  abortSignal,
+  sendToReactComponent = (responseText) => null,
+  handleInvalidCreds = () => null) {
+
   const token = await setupAccessToken();
   if(token === false) return handleInvalidCreds();
 
@@ -53,7 +59,7 @@ export async function askChatGPT(transcript, abortSignal, sendToReactComponent =
     if(text) return sendToReactComponent(text);
   };
 
-  const query = `Summarize this youtube transcript in 150 words or less (use people's names if needed but do not make assumptions): ${transcript}`;
+  const query = `Summarize this youtube transcript (refer to it as page ${transcriptPartId+1} of ${transcript.length}) in 150 words or less (use peoples' names if needed but do not make assumptions): ${transcript[transcriptPartId]}`;
   return await subscribeToSSE(CONVO_ENDPOINT, {
     method: 'POST',
     signal: abortSignal,

@@ -1,42 +1,65 @@
 import Api from 'youtube-browser-api';
-import ExpiryMap from 'expiry-map';
+import splitTextIntoSizeableTokenArrays from './splitTokens';
 
-function Transcripts() {
-  this.map = new ExpiryMap(60 * 6 * 1000);
-  this.port = undefined;
+const transcripts = new Map();
+
+export function YoutubeTranscript ({ transcriptParts = [], youtubeVideoId = '' }) {
+  this.transcriptParts = transcriptParts;
+  this.activeTranscriptPartId = 0;
+  this.youtubeVideoId = youtubeVideoId;
 }
 
-Transcripts.prototype = {
-  parseTranscript: function(arr) {
-    const transcript = []
-    arr.forEach(({ text }) => transcript.push(text))
-    return transcript.join(' ');
+YoutubeTranscript.prototype = {
+  hasTranscript: function() {
+    return this.transcriptParts.length > 0;
   },
-  getTranscript: async function(videoId) {
-    let transcript = this.map.get(videoId);
-    if(transcript !== undefined) return transcript;
-    transcript = await Api.transcript
-      .GET({ query: { videoId } })
-      .Ok(({body}) => body)
-      .then(({body}) => body)
-      .then(({videoId}) => videoId)
-      .then(this.parseTranscript)
-      .catch(() => '')
-    this.map.set(videoId, transcript)
-    return transcript;
+  hasMultiPageTranscript: function() {
+    return this.transcriptParts.length > 1;
   },
-  setBgScriptPort: function(port) { 
-    this.port = port
+  hasNextPage: function() {
+    return this.hasMultiPageTranscript() && this.activeTranscriptPartId < this.transcriptParts.length-1;
   },
-  sendToBgScript: async function(youtubeVideoId) {
-    if(youtubeVideoId === '') return;
-    const transcript = await this.getTranscript(youtubeVideoId);
-    return this.port.postMessage({
-      type: 'VIDEO_TRANSCRIPT',
-      data: { transcript, youtubeVideoId }
-    })
+  hasPrevPage: function() {
+    return this.hasMultiPageTranscript() && this.activeTranscriptPartId > 0;
+  },
+  nextPage: function({ callback = (transcriptInstance) => null }) {
+    if(this.hasNextPage()) {
+      this.activeTranscriptPartId++;
+      callback(this);
+    }
+  },
+  prevPage: function({ callback = (transcriptInstance) => null }) {
+    if(this.hasPrevPage()) {
+      this.activeTranscriptPartId--;
+      callback(this);
+    }
+  },
+  getPageIndicatorStr: function() {
+    return this.hasMultiPageTranscript() ? `Page ${this.activeTranscriptPartId+1} / ${this.transcriptParts.length}` : ''
   }
 }
 
-const transcripts = new Transcripts();
-export default transcripts;
+function parseTranscriptArrToString(transcriptArr) {
+  const transcript = []
+  transcriptArr.forEach(({ text }) => transcript.push(text))
+  return transcript.join(' ');
+}
+
+export async function getYoutubeTranscript(youtubeVideoId) {
+  if(youtubeVideoId === '') return new YoutubeTranscript()
+
+  const existingYoutubeTranscript = transcripts.get(youtubeVideoId);
+  if(existingYoutubeTranscript !== undefined) return existingYoutubeTranscript
+
+  const transcriptParts = await Api.transcript
+    .GET({ query: { videoId: youtubeVideoId } })
+    .Ok(({body}) => body)
+    .then(({body}) => body)
+    .then(({videoId}) => videoId)
+    .then((transcriptAsArray) => parseTranscriptArrToString(transcriptAsArray))
+    .then((transcriptAsString) => splitTextIntoSizeableTokenArrays(transcriptAsString))
+    .catch(() => [])
+  const youtubeTranscript = new YoutubeTranscript({ transcriptParts, youtubeVideoId })
+  transcripts.set(youtubeVideoId, youtubeTranscript)
+  return youtubeTranscript;
+}
