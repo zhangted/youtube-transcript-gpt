@@ -86,19 +86,18 @@ export default function SummaryBox() {
 
   const ToggleThemeButton = useCallback(() => <button onClick={e=>setIsDarkMode(!isDarkMode)}>{isDarkMode?<SunIcon />:<MoonIcon />}</button>, [isDarkMode])
 
-  const wrapperCssAttrs = {backgroundColor: isDarkMode ? '#0f0f0f' : '#e8e8e8', color: isDarkMode ? 'white' : 'black', fontSize:'18px', borderRadius:'4px', padding:'19px', marginBottom:'5px'};
-
+  const wrapperCssAttrs = {backgroundColor: isDarkMode ? '#0f0f0f' : '#e8e8e8', color: isDarkMode ? 'white' : 'black', fontSize:'18px', borderRadius:'8px', padding:'19px', marginBottom:'5px'}
   const Wrapper = useCallback(({elements}) => <div style={wrapperCssAttrs}>
     {elements}
-    {showRefresh && <div style={{margin:'5px 0 5px 0'}}>
-      <div>{youtubeTranscript.getPageIndicatorStr()}</div>
+    {showRefresh && <div style={{margin:'5px 0'}}>
+      <div style={{fontWeight:'600', margin:'10px 0'}}>{youtubeTranscript.getPageIndicatorStr()}</div>
       <PrevPageButton />&nbsp;
       <NextPageButton />
       <div style={{float:'right'}}>
         <button onClick={e=>setYoutubeTranscriptAndSendToBgScript(youtubeTranscript)}><ArrowClockwise /></button>&nbsp;<ToggleThemeButton />
       </div>
     </div>}
-  </div>, [text, showRefresh, ToggleThemeButton, PrevPageButton, NextPageButton])
+  </div>, [wrapperCssAttrs, text, showRefresh, ToggleThemeButton, PrevPageButton, NextPageButton])
 
   if(text === 'loading') return <Wrapper elements={['Summarizing... ', <Spinner />]} />
   return <Wrapper elements={text} />

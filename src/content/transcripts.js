@@ -35,7 +35,7 @@ YoutubeTranscript.prototype = {
     }
   },
   getPageIndicatorStr: function() {
-    return this.hasMultiPageTranscript() ? `${this.activeTranscriptPartId+1} / ${this.transcriptParts.length}` : ''
+    return this.hasMultiPageTranscript() ? `Page ${this.activeTranscriptPartId+1} / ${this.transcriptParts.length}` : ''
   }
 }
 

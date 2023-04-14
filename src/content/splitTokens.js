@@ -1,9 +1,9 @@
 function splitIntoSizeableTokensForPayload(arr) {
   const wordsIn100Tokens = 75;
-  const wordsPerArray = (wordsIn100Tokens - 20) * 38
+  const wordsPerArrayWithSafetyNet = (wordsIn100Tokens - 20) * 38
   var result = [];
-  for (var i = 0; i < arr.length; i += wordsPerArray) {
-    result.push(arr.slice(i, i + wordsPerArray));
+  for (var i = 0; i < arr.length; i += wordsPerArrayWithSafetyNet) {
+    result.push(arr.slice(i, i + wordsPerArrayWithSafetyNet));
   }
   return result;
 }
