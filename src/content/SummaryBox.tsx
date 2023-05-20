@@ -61,7 +61,7 @@ export default function SummaryBox(): JSX.Element {
   const setYoutubeVideoInfoAndSendToBgScript = useCallback(
     (youtubeVideoInfo: YoutubeVideoInfo): void => {
       setYoutubeVideoInfo(youtubeVideoInfo);
-      sendTranscriptToBgScript(port, youtubeVideoInfo);
+      if(getYoutubeVideoId()) sendTranscriptToBgScript(port, youtubeVideoInfo);
     },
     []
   );
