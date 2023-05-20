@@ -14,7 +14,9 @@
 ```shell
 $ npm run dev
 ```
+
 ## Packing
+
 ```shell
 $ npm run build
 ```
@@ -25,10 +27,11 @@ $ npm run build
 2. click 'Load unpacked', and select `youtube-transcript-gpt/build` folder
 
 ## TODO
+
 - [x] handle errors in between request, parsing cycle (more granular error capturing + ui)
 - [x] use streaming fetch (SSE) for better loading ui experience
 - [~] how to deal with / chunk super long transcripts
 - [ ] add option to use openai paid apis instead (alternative to chatgpt)
-- [ ] convert to typescript
+- [x] convert to typescript
 - [ ] add additional context into the query from the youtube page properties
 - [x] limit spam req - cache last url of video transcript used to sent query to openai api

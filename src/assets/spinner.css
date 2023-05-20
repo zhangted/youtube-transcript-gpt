@@ -1,7 +1,11 @@
-.spinner_ajPY{
-  transform-origin:center;
-  animation:spinner_AtaB .75s infinite linear;
+.spinner_ajPY {
+  transform-origin: center;
+  animation: spinner_AtaB 0.75s infinite linear;
   fill: white;
 }
 
-@keyframes spinner_AtaB{100%{transform:rotate(360deg)}}
+@keyframes spinner_AtaB {
+  100% {
+    transform: rotate(360deg);
+  }
+}
