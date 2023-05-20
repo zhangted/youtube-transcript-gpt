@@ -8,7 +8,8 @@ export class YoutubeVideoInfo {
   constructor(
     public transcriptParts: string[] = [],
     public activeTranscriptPartId: number = 0,
-    public youtubeVideoId: string = ""
+    public youtubeVideoId: string = "",
+    public metaData: string = "",
   ) {}
 
   hasTranscript(): boolean {
@@ -70,15 +71,8 @@ function parseTranscriptArrToString(
   return transcriptAsObjectArr.map(({ text }) => text).join(" ");
 }
 
-export async function getYoutubeVideoInfo(
-  youtubeVideoId: string
-): Promise<YoutubeVideoInfo> {
-  if (youtubeVideoId === "") return new YoutubeVideoInfo();
-
-  const existingYoutubeVideoInfo = videoInfoMap.get(youtubeVideoId);
-  if (existingYoutubeVideoInfo !== undefined) return existingYoutubeVideoInfo;
-
-  const transcriptParts = await Api.transcript
+async function getTranscriptParts(youtubeVideoId: string): Promise<string[]> {
+  return await Api.transcript
     .GET({ query: { videoId: youtubeVideoId } })
     .Ok(({ body }: { body: object }): object => body)
     .then(({ body }: { body: object }): object => body)
@@ -90,12 +84,54 @@ export async function getYoutubeVideoInfo(
       splitTextIntoSizeableTokenArrays(transcriptAsString)
     )
     .catch((): string[] => []);
-  const youtubeVideoInfo = new YoutubeVideoInfo(
-    transcriptParts,
-    0,
-    youtubeVideoId
-  );
+}
 
+async function getMetadata(youtubeVideoId: string): Promise<string> {
+  return await Api.content
+    .GET({
+      query: {
+        id: youtubeVideoId,
+        params: ['title', 'description', 'channel']
+      },
+    })
+    .Ok(({ body }: { body: object }): object => body)
+    .then(({ body }: { body: object }): object => body)
+    .then(JSON.stringify)
+    .then((text: string) => text.replace(/(?:https?|ftp):\/\/[\S]+/gi, ""))
+    .catch(() => '')
+}
+
+export async function getYoutubeVideoInfo(
+  youtubeVideoId: string
+): Promise<YoutubeVideoInfo> {
+  if (youtubeVideoId === "") return new YoutubeVideoInfo();
+
+  const existingYoutubeVideoInfo = videoInfoMap.get(youtubeVideoId);
+  if (existingYoutubeVideoInfo !== undefined) return existingYoutubeVideoInfo;
+
+  const youtubeVideoInfo: YoutubeVideoInfo | null = await Promise.allSettled([
+    getTranscriptParts(youtubeVideoId),
+    getMetadata(youtubeVideoId)
+  ])
+  .then(([transcriptPartsResult, metaDataResult]) => {
+    if (transcriptPartsResult.status === 'rejected') return null;
+
+    const transcriptParts: string[] = transcriptPartsResult.value;
+    const metaData: string = metaDataResult.status === 'fulfilled' ? metaDataResult.value : '';
+
+    console.log(metaData)
+
+    return new YoutubeVideoInfo(
+      transcriptParts,
+      0,
+      youtubeVideoId,
+      metaData,
+    );
+  });
+
+  if(youtubeVideoInfo === null) {
+    return new YoutubeVideoInfo();
+  }
   videoInfoMap.set(youtubeVideoId, youtubeVideoInfo);
 
   return youtubeVideoInfo;
