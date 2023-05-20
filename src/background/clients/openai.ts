@@ -64,11 +64,13 @@ export async function askChatGPT(
     if (text) sendToReactComponent(text);
   };
 
-  const query = `Summarize this youtube transcript (page ${
+  const query = `You are an award-winning writer and fact checker, who thinks step by step. In 150 words or less, summarize this youtube transcript (page ${
     youtubeVideoInfo.activeTranscriptPartId + 1
   } of ${
     youtubeVideoInfo.transcriptParts.length
-  }) in 150 words or less (use peoples' names if needed but do not make assumptions): ${getActiveTranscriptPart(
+  })${
+    youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ''
+  }: ${getActiveTranscriptPart(
     youtubeVideoInfo
   )}`;
 
