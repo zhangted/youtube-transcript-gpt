@@ -91,7 +91,7 @@ async function getMetadata(youtubeVideoId: string): Promise<string> {
     .GET({
       query: {
         id: youtubeVideoId,
-        params: ['title', 'description', 'channel']
+        params: ['title', 'channel']
       },
     })
     .Ok(({ body }: { body: object }): object => body)
