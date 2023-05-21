@@ -64,7 +64,7 @@ export async function askChatGPT(
     if (text) sendToReactComponent(text);
   };
 
-  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, and outputs up to 150 words, concentrating on signal/content, and discarding noise. Summarize this youtube transcript ${
+  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, and outputs up to 150 words, maximizing on signal/content, minimizing noise, and making no assumptions about names. Summarize this youtube transcript ${
     youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ''
   }(Transcript[page ${youtubeVideoInfo.activeTranscriptPartId + 1} of ${youtubeVideoInfo.transcriptParts.length}]: 
   ${getActiveTranscriptPart(

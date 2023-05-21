@@ -58,11 +58,20 @@ export default function SummaryBox(): JSX.Element {
   const [showRefresh, setShowRefresh] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(calcIsDarkMode());
 
+  const showRefreshLater = () => {
+    setShowRefresh(false);
+    const id = setTimeout(() => setShowRefresh(true), 10000);
+    return () => clearTimeout(id);
+  }
+  const [cancelShowRefreshLater, setCancelShowRefreshLater] = useState<Function>(() => () => null);
+
   const setYoutubeVideoInfoAndSendToBgScript = useCallback(
     (youtubeVideoInfo: YoutubeVideoInfo): void => {
       setYoutubeVideoInfo(youtubeVideoInfo);
       if(getYoutubeVideoId()) {
         setText("loading");
+        cancelShowRefreshLater();
+        setCancelShowRefreshLater(showRefreshLater())
         sendTranscriptToBgScript(port, youtubeVideoInfo);
       }
     },
