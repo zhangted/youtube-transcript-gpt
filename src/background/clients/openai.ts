@@ -70,9 +70,9 @@ export async function askChatGPT(
     youtubeVideoInfo.transcriptParts.length
   })${
     youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ''
-  }: ${getActiveTranscriptPart(
+  }(Transcript: ${getActiveTranscriptPart(
     youtubeVideoInfo
-  )}`;
+  )})`;
 
   return await subscribeToSSE(
     CONVO_ENDPOINT,
