@@ -64,13 +64,10 @@ export async function askChatGPT(
     if (text) sendToReactComponent(text);
   };
 
-  const query = `You are an award-winning writer and fact checker, who thinks step by step. In 150 words or less, summarize this youtube transcript (page ${
-    youtubeVideoInfo.activeTranscriptPartId + 1
-  } of ${
-    youtubeVideoInfo.transcriptParts.length
-  })${
+  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, and outputs up to 150 words, concentrating on signal/content, and discarding noise. Summarize this youtube transcript ${
     youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ''
-  }(Transcript: ${getActiveTranscriptPart(
+  }(Transcript[page ${youtubeVideoInfo.activeTranscriptPartId + 1} of ${youtubeVideoInfo.transcriptParts.length}]: 
+  ${getActiveTranscriptPart(
     youtubeVideoInfo
   )})`;
 
@@ -95,6 +92,9 @@ export async function askChatGPT(
         model: "text-davinci-002-render",
         parent_message_id: uuidv4(),
         is_visible: false,
+        options: {
+          temperature: 0.3,
+        },
       }),
     },
     onMessage
