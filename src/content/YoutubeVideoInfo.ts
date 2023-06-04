@@ -9,7 +9,7 @@ export class YoutubeVideoInfo {
     public transcriptParts: string[] = [],
     public activeTranscriptPartId: number = 0,
     public youtubeVideoId: string = "",
-    public metaData: string = "",
+    public metaData: string = ""
   ) {}
 
   hasTranscript(): boolean {
@@ -91,14 +91,14 @@ async function getMetadata(youtubeVideoId: string): Promise<string> {
     .GET({
       query: {
         id: youtubeVideoId,
-        params: ['title', 'channel']
+        params: ["title", "channel"],
       },
     })
     .Ok(({ body }: { body: object }): object => body)
     .then(({ body }: { body: object }): object => body)
     .then(JSON.stringify)
     .then((text: string) => text.replace(/(?:https?|ftp):\/\/[\S]+/gi, ""))
-    .catch(() => '')
+    .catch(() => "");
 }
 
 export async function getYoutubeVideoInfo(
@@ -111,25 +111,20 @@ export async function getYoutubeVideoInfo(
 
   const youtubeVideoInfo: YoutubeVideoInfo | null = await Promise.allSettled([
     getTranscriptParts(youtubeVideoId),
-    getMetadata(youtubeVideoId)
-  ])
-  .then(([transcriptPartsResult, metaDataResult]) => {
-    if (transcriptPartsResult.status === 'rejected') return null;
+    getMetadata(youtubeVideoId),
+  ]).then(([transcriptPartsResult, metaDataResult]) => {
+    if (transcriptPartsResult.status === "rejected") return null;
 
     const transcriptParts: string[] = transcriptPartsResult.value;
-    const metaData: string = metaDataResult.status === 'fulfilled' ? metaDataResult.value : '';
+    const metaData: string =
+      metaDataResult.status === "fulfilled" ? metaDataResult.value : "";
 
-    console.log(metaData)
+    console.log(metaData);
 
-    return new YoutubeVideoInfo(
-      transcriptParts,
-      0,
-      youtubeVideoId,
-      metaData,
-    );
+    return new YoutubeVideoInfo(transcriptParts, 0, youtubeVideoId, metaData);
   });
 
-  if(youtubeVideoInfo === null) {
+  if (youtubeVideoInfo === null) {
     return new YoutubeVideoInfo();
   }
   videoInfoMap.set(youtubeVideoId, youtubeVideoInfo);

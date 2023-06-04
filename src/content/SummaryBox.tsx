@@ -15,6 +15,7 @@ import {
   MoonIcon,
   Spinner,
   SunIcon,
+  CogIcon,
 } from "./icons";
 
 const getOnMountText = (): string =>
@@ -62,16 +63,17 @@ export default function SummaryBox(): JSX.Element {
     setShowRefresh(false);
     const id = setTimeout(() => setShowRefresh(true), 10000);
     return () => clearTimeout(id);
-  }
-  const [cancelShowRefreshLater, setCancelShowRefreshLater] = useState<Function>(() => () => null);
+  };
+  const [cancelShowRefreshLater, setCancelShowRefreshLater] =
+    useState<Function>(() => () => null);
 
   const setYoutubeVideoInfoAndSendToBgScript = useCallback(
     (youtubeVideoInfo: YoutubeVideoInfo): void => {
       setYoutubeVideoInfo(youtubeVideoInfo);
-      if(getYoutubeVideoId()) {
+      if (getYoutubeVideoId()) {
         setText("loading");
         cancelShowRefreshLater();
-        setCancelShowRefreshLater(showRefreshLater())
+        setCancelShowRefreshLater(showRefreshLater());
         sendTranscriptToBgScript(port, youtubeVideoInfo);
       }
     },
@@ -146,6 +148,18 @@ export default function SummaryBox(): JSX.Element {
     [youtubeVideoInfo]
   );
 
+  const RefreshButton = useCallback(
+    (): JSX.Element => (
+      <button
+        title="Refresh Summary"
+        onClick={(e) => setYoutubeVideoInfoAndSendToBgScript(youtubeVideoInfo)}
+      >
+        <ArrowClockwise />
+      </button>
+    ),
+    [youtubeVideoInfo]
+  );
+
   const ToggleThemeButton = useCallback(
     (): JSX.Element => (
       <button onClick={(e) => setIsDarkMode(!isDarkMode)}>
@@ -153,6 +167,18 @@ export default function SummaryBox(): JSX.Element {
       </button>
     ),
     [isDarkMode]
+  );
+
+  const OpenOptionsButton = useCallback(
+    (): JSX.Element => (
+      <button
+        title="Settings"
+        onClick={(e) => port.postMessage({ type: "OPEN_OPTIONS_PAGE" })}
+      >
+        <CogIcon />
+      </button>
+    ),
+    []
   );
 
   const wrapperCssAttrs: Record<string, string> = {
@@ -176,15 +202,11 @@ export default function SummaryBox(): JSX.Element {
             {youtubeVideoInfo.hasPrevPage() && <PrevPageButton />}&nbsp;
             {youtubeVideoInfo.hasNextPage() && <NextPageButton />}
             <div style={{ float: "right" }}>
-              <button
-                onClick={(e) =>
-                  setYoutubeVideoInfoAndSendToBgScript(youtubeVideoInfo)
-                }
-              >
-                <ArrowClockwise />
-              </button>
+              <RefreshButton />
               &nbsp;
               <ToggleThemeButton />
+              &nbsp;
+              <OpenOptionsButton />
             </div>
           </div>
         )}

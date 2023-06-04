@@ -7,6 +7,7 @@ import {
   MESSAGE_TYPES,
   NoTranscriptMessage,
   YoutubeVideoInfoMessage,
+  OpenOptionsPageMessage,
 } from "../utils/MessageTypes";
 import { askChatGPT } from "./clients/openai";
 
@@ -47,6 +48,10 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
       console.log("Message received:", message);
 
       switch (message.type) {
+        case MESSAGE_TYPES.OPEN_OPTIONS_PAGE:
+          const openOptionsPageMsg = message as OpenOptionsPageMessage;
+          Browser.runtime.openOptionsPage();
+          break;
         case MESSAGE_TYPES.VIDEO_TRANSCRIPT:
           const youtubeVideoInfoMsg = message as YoutubeVideoInfoMessage;
           await handleVideoTranscriptMsg(port, youtubeVideoInfoMsg);

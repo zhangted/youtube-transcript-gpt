@@ -4,6 +4,7 @@ import ArrowRightSquareIcon from "./ArrowRightSquareIcon";
 import MoonIcon from "./MoonIcon";
 import Spinner from "./Spinner";
 import SunIcon from "./SunIcon";
+import CogIcon from "./CogIcon";
 
 export {
   ArrowClockwise,
@@ -12,4 +13,5 @@ export {
   MoonIcon,
   Spinner,
   SunIcon,
+  CogIcon,
 };

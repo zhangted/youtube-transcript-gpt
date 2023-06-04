@@ -13,13 +13,13 @@ export default defineManifest({
     128: "img/logo-128.png",
   },
   action: {
-    default_popup: 'src/options/index.html',
+    default_popup: "src/options/index.html",
     // default_icon: 'img/logo-48.png',
   },
-  options_page: 'src/options/index.html',
-  permissions: [
-    "storage"
-  ],
+  options_ui: {
+    page: "src/options/index.html",
+  },
+  permissions: ["storage"],
   background: {
     service_worker: "src/background/index.ts",
     type: "module",
