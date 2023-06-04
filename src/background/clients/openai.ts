@@ -5,6 +5,7 @@ import {
   YoutubeVideoInfo,
   getActiveTranscriptPart,
 } from "../../content/YoutubeVideoInfo";
+import { getOptionsHash } from "../../options/Options";
 
 const BASE_URL: string = "https://chat.openai.com";
 const AUTH_ENDPOINT: string = `${BASE_URL}/api/auth/session`;
@@ -64,7 +65,8 @@ export async function askChatGPT(
     if (text) sendToReactComponent(text);
   };
 
-  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, and outputs up to 150 words, maximizing on signal/content, minimizing noise, and making no assumptions about names. Summarize this youtube transcript ${
+  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, and outputs up to 150 words, maximizing on signal/content, minimizing noise, and making no assumptions about names. Summarize this youtube transcript in ${(await getOptionsHash()).gpt_language}
+  ${
     youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ''
   }(Transcript[page ${youtubeVideoInfo.activeTranscriptPartId + 1} of ${youtubeVideoInfo.transcriptParts.length}]: 
   ${getActiveTranscriptPart(

@@ -33,5 +33,5 @@ $ npm run build
 - [~] how to deal with / chunk super long transcripts
 - [ ] add option to use openai paid apis instead (alternative to chatgpt)
 - [x] convert to typescript
-- [ ] add additional context into the query from the youtube page properties
+- [~] add additional context into the query from the youtube page properties
 - [x] limit spam req - cache last url of video transcript used to sent query to openai api
