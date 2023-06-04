@@ -4,7 +4,7 @@ export default defineManifest({
   name: "youtube-transcript-gpt",
   description:
     "Get youtube summaries by chatgpt injected automatically if the video has a transcript! ",
-  version: "0.0.1",
+  version: "0.0.5",
   manifest_version: 3,
   icons: {
     16: "img/logo-16.png",
@@ -12,11 +12,14 @@ export default defineManifest({
     48: "img/logo-48.png",
     128: "img/logo-128.png",
   },
-  // action: {
-  //   default_popup: 'popup.html',
-  //   default_icon: 'img/logo-48.png',
-  // },
-  // options_page: 'options.html',
+  action: {
+    default_popup: 'src/options/index.html',
+    // default_icon: 'img/logo-48.png',
+  },
+  options_page: 'src/options/index.html',
+  permissions: [
+    "storage"
+  ],
   background: {
     service_worker: "src/background/index.ts",
     type: "module",

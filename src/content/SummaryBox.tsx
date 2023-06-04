@@ -82,7 +82,6 @@ export default function SummaryBox(): JSX.Element {
     (message: MessageFromBgScript) => {
       if (message.type === MESSAGE_TYPES.SERVER_SENT_EVENTS_END)
         return setShowRefresh(true);
-      setShowRefresh(false);
       setText(getTextToInsert(message));
       if (
         [MESSAGE_TYPES.NO_TRANSCRIPT, MESSAGE_TYPES.NO_ACCESS_TOKEN].includes(
