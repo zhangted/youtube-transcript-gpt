@@ -27,7 +27,7 @@ type OptionsHashKey = keyof OptionsHash;
 const optionsHashDefaults: OptionsHash = {
   // defaults for each option
   gpt_language: GPT_LANGUAGE[0],
-  response_tokens: 250, // 250 tokens
+  response_tokens: 200,
 };
 
 const settingsKeys: OptionsHashKey[] = Object.keys(
@@ -108,7 +108,7 @@ export function Options() {
             setCurSettings({ ...curSettings, response_tokens: Number(ele.value) || optionsHashDefaults.response_tokens });
           }}
           value={curSettings.response_tokens}
-          type="range" id="response_tokens" name="response_tokens" min="200" max="400" />
+          type="range" id="response_tokens" name="response_tokens" min="150" max="500" />
         {curSettings.response_tokens} tokens
         <div>(~{Math.floor(curSettings.response_tokens / 100 * 75)} words)</div>
       </div>
@@ -121,7 +121,7 @@ export function Options() {
               gpt_language: GPT_LANGUAGE.includes(curSettings.gpt_language)
                 ? curSettings.gpt_language
                 : optionsHashDefaults.gpt_language,
-              response_tokens: curSettings.response_tokens >= 200 && curSettings.response_tokens <= 400
+              response_tokens: curSettings.response_tokens >= 150 && curSettings.response_tokens <= 500
                 ? curSettings.response_tokens
                 : optionsHashDefaults.response_tokens
             });

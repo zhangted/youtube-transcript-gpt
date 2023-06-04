@@ -4,7 +4,7 @@ export default defineManifest({
   name: "youtube-transcript-gpt",
   description:
     "Get youtube summaries by chatgpt injected automatically if the video has a transcript! ",
-  version: "0.0.5",
+  version: "0.0.6",
   manifest_version: 3,
   icons: {
     16: "img/logo-16.png",
