@@ -15,18 +15,19 @@ const GPT_LANGUAGE: string[] = [
   "Italian",
   "Vietnamese",
 ];
-const GPT_LANGUAGE_DEFAULT: string = GPT_LANGUAGE[0];
 
-interface OptionsHash {
+export interface OptionsHash extends Record<string, string | number> {
   // avail options
   gpt_language: string;
+  response_tokens: number;
 }
 
 type OptionsHashKey = keyof OptionsHash;
 
 const optionsHashDefaults: OptionsHash = {
   // defaults for each option
-  gpt_language: GPT_LANGUAGE_DEFAULT,
+  gpt_language: GPT_LANGUAGE[0],
+  response_tokens: 250, // 250 tokens
 };
 
 const settingsKeys: OptionsHashKey[] = Object.keys(
@@ -55,7 +56,7 @@ export function Options() {
     getOptionsHash()
       .then((curSettings) =>
         settingsKeys.reduce(
-          (curSettings: OptionsHash, key: keyof OptionsHash): OptionsHash => {
+          (curSettings: OptionsHash, key: OptionsHashKey): OptionsHash => {
             if (!curSettings[key]) curSettings[key] = optionsHashDefaults[key];
             return curSettings;
           },
@@ -80,9 +81,9 @@ export function Options() {
 
   return (
     <div>
-      <h1>Youtube Transcript Gpt Options</h1>
+      <h2>Youtube Transcript Gpt Options</h2>
 
-      <div>
+      <div style={{ margin: "10px" }}>
         <label for="language">Summary language: </label>
         <select
           name="language"
@@ -100,13 +101,29 @@ export function Options() {
       </div>
 
       <div style={{ margin: "10px" }}>
+        <label for="response_tokens">Suggested Summary Length: </label>
+        <input 
+          onInput={(e: Event) => {
+            const ele = e.target as HTMLOptionElement;
+            setCurSettings({ ...curSettings, response_tokens: Number(ele.value) || optionsHashDefaults.response_tokens });
+          }}
+          value={curSettings.response_tokens}
+          type="range" id="response_tokens" name="response_tokens" min="200" max="400" />
+        {curSettings.response_tokens} tokens
+        <div>(~{Math.floor(curSettings.response_tokens / 100 * 75)} words)</div>
+      </div>
+
+      <div style={{ margin: "10px" }}>
         <button
           onClick={async (e) => {
             await setOptionsHash({
               // validations here
               gpt_language: GPT_LANGUAGE.includes(curSettings.gpt_language)
                 ? curSettings.gpt_language
-                : GPT_LANGUAGE_DEFAULT,
+                : optionsHashDefaults.gpt_language,
+              response_tokens: curSettings.response_tokens >= 200 && curSettings.response_tokens <= 400
+                ? curSettings.response_tokens
+                : optionsHashDefaults.response_tokens
             });
             afterSave(<div style={{ color: "green" }}>saved!</div>);
             setSyncs(syncs + 1);

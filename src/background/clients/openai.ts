@@ -5,7 +5,7 @@ import {
   YoutubeVideoInfo,
   getActiveTranscriptPart,
 } from "../../content/YoutubeVideoInfo";
-import { getOptionsHash } from "../../options/Options";
+import { getOptionsHash, OptionsHash } from "../../options/Options";
 
 const BASE_URL: string = "https://chat.openai.com";
 const AUTH_ENDPOINT: string = `${BASE_URL}/api/auth/session`;
@@ -65,9 +65,12 @@ export async function askChatGPT(
     if (text) sendToReactComponent(text);
   };
 
-  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, and outputs up to 150 words, maximizing on signal/content, minimizing noise, and making no assumptions about names. Summarize this youtube transcript in ${
-    (await getOptionsHash()).gpt_language
-  }
+  const extensionSettings: OptionsHash = await getOptionsHash();
+  const { gpt_language, response_tokens } = extensionSettings;
+
+  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, maximizing on signal/content, minimizing noise, and making no assumptions about names. Summarize this youtube transcript in ${
+    gpt_language
+  } in ${response_tokens} tokens
   ${
     youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ""
   }(Transcript[page ${youtubeVideoInfo.activeTranscriptPartId + 1} of ${
@@ -93,12 +96,13 @@ export async function askChatGPT(
             },
           },
         ],
-        model: "text-davinci-002-render",
+        model: "text-davinci-002-render-sha",
         parent_message_id: uuidv4(),
         is_visible: false,
         options: {
           temperature: 0.3,
-        },
+          max_tokens: response_tokens
+        }
       }),
     },
     onMessage
