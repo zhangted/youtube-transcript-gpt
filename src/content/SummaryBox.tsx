@@ -84,6 +84,10 @@ export default function SummaryBox(): JSX.Element {
     (message: MessageFromBgScript) => {
       if (message.type === MESSAGE_TYPES.SERVER_SENT_EVENTS_END)
         return setShowRefresh(true);
+      else if(message.type === MESSAGE_TYPES.SERVER_ERROR_RESPONSE) {
+        setTimeout(async() => setYoutubeVideoInfoAndSendToBgScript(await getVideoIdAndTranscriptObject()), 800);
+        return
+      }
       setText(getTextToInsert(message));
       if (
         [MESSAGE_TYPES.NO_TRANSCRIPT, MESSAGE_TYPES.NO_ACCESS_TOKEN].includes(

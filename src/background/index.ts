@@ -22,6 +22,9 @@ async function handleVideoTranscriptMsg(
 
   controller.abort();
   controller = new AbortController();
+  const summaryTimeLimit = 30000;
+  const id = setTimeout(() => controller.abort(), summaryTimeLimit);
+  const cancelAbort = () => clearTimeout(id);
 
   const sendToReactComponent = (gptResponse: string): void =>
     port.postMessage({
@@ -31,13 +34,17 @@ async function handleVideoTranscriptMsg(
     });
   const handleInvalidCreds = (): void =>
     port.postMessage({ type: MESSAGE_TYPES.NO_ACCESS_TOKEN });
+  const handleServerError = (): void =>
+    port.postMessage({ type: MESSAGE_TYPES.SERVER_ERROR_RESPONSE });
 
   await askChatGPT(
     message.data,
     controller.signal,
     sendToReactComponent,
-    handleInvalidCreds
+    handleInvalidCreds,
+    handleServerError,
   );
+  cancelAbort();
 
   port.postMessage({ type: MESSAGE_TYPES.SERVER_SENT_EVENTS_END });
 }

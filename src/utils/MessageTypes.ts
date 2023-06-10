@@ -7,6 +7,7 @@ export const MESSAGE_TYPES = {
   GPT_RESPONSE: "GPT_RESPONSE",
   SERVER_SENT_EVENTS_END: "SERVER_SENT_EVENTS_END",
   OPEN_OPTIONS_PAGE: "OPEN_OPTIONS_PAGE",
+  SERVER_ERROR_RESPONSE: "SERVER_ERROR_RESPONSE",
 };
 
 export interface YoutubeVideoInfoMessage {
@@ -36,10 +37,15 @@ export interface OpenOptionsPageMessage {
   type: typeof MESSAGE_TYPES.OPEN_OPTIONS_PAGE;
 }
 
+export interface ServerErrorResponseMessage {
+  type: typeof MESSAGE_TYPES.SERVER_ERROR_RESPONSE;
+}
+
 export type MessageFromContentScript =
   | NoTranscriptMessage
   | YoutubeVideoInfoMessage
-  | OpenOptionsPageMessage;
+  | OpenOptionsPageMessage
+  | ServerErrorResponseMessage;
 export type MessageFromBgScript =
   | NoTranscriptMessage
   | YoutubeVideoInfoMessage

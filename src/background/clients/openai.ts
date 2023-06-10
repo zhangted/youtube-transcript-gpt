@@ -47,7 +47,8 @@ export async function askChatGPT(
   youtubeVideoInfo: YoutubeVideoInfo,
   abortSignal: AbortSignal,
   sendToReactComponent = (gptResponse: string): void => {},
-  handleInvalidCreds = (): void => {}
+  handleInvalidCreds = (): void => {},
+  handleServerError = (): void => {},
 ) {
   const token: string | undefined = await setupAccessToken();
   if (token === undefined) return handleInvalidCreds();
@@ -100,7 +101,9 @@ export async function askChatGPT(
     onMessage
   ).catch((err: Error): void => {
     if (err.name === "AbortError") return;
-    sendToReactComponent(err.toString());
+    console.error(err);
+    handleServerError();
+    // sendToReactComponent(err.toString());
   });
 }
 
