@@ -6,7 +6,6 @@ export const MESSAGE_TYPES = {
   NO_ACCESS_TOKEN: "NO_ACCESS_TOKEN",
   GPT_RESPONSE: "GPT_RESPONSE",
   SERVER_SENT_EVENTS_END: "SERVER_SENT_EVENTS_END",
-  OPEN_OPTIONS_PAGE: "OPEN_OPTIONS_PAGE",
   SERVER_ERROR_RESPONSE: "SERVER_ERROR_RESPONSE",
 };
 
@@ -33,10 +32,6 @@ export interface ServerSentEventsEndedMessage {
   type: typeof MESSAGE_TYPES.SERVER_SENT_EVENTS_END;
 }
 
-export interface OpenOptionsPageMessage {
-  type: typeof MESSAGE_TYPES.OPEN_OPTIONS_PAGE;
-}
-
 export interface ServerErrorResponseMessage {
   type: typeof MESSAGE_TYPES.SERVER_ERROR_RESPONSE;
 }
@@ -44,7 +39,6 @@ export interface ServerErrorResponseMessage {
 export type MessageFromContentScript =
   | NoTranscriptMessage
   | YoutubeVideoInfoMessage
-  | OpenOptionsPageMessage
   | ServerErrorResponseMessage;
 export type MessageFromBgScript =
   | NoTranscriptMessage

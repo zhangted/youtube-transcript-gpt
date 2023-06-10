@@ -71,7 +71,7 @@ export async function askChatGPT(
 
   const query = `You are an expert summarizer tasked with extracting only the most important details and condensing this YouTube transcript into a concise ${gpt_language} summary within ${response_tokens} tokens.
   Please provide a focused and deterministic summary with a temperature of 0.1.
-  Please provide ONLY the summary in the response.
+  Please provide ONLY the ${response_tokens} ${gpt_language} tokens summary in the response.
   Consider or discard the video's metadata (${youtubeVideoInfo.metaData}) while summarizing the transcript.
   Here is the transcript of a YouTube video that requires summarization within ${response_tokens} tokens: ${getActiveTranscriptPart(youtubeVideoInfo)}`;
 

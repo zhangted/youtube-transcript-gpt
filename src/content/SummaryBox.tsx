@@ -3,6 +3,7 @@ import getVideoId from "get-video-id";
 import Browser from "webextension-polyfill";
 import { getYoutubeVideoInfo, YoutubeVideoInfo } from "./YoutubeVideoInfo";
 import { useState, useEffect, useCallback } from "preact/hooks";
+import { Options } from "../options/Options";
 import {
   GptResponseMessage,
   MESSAGE_TYPES,
@@ -17,6 +18,7 @@ import {
   SunIcon,
   CogIcon,
 } from "./icons";
+import { JSX } from "preact";
 
 const getOnMountText = (): string =>
   getYoutubeVideoId() === "" ? "" : "loading";
@@ -177,7 +179,7 @@ export default function SummaryBox(): JSX.Element {
     (): JSX.Element => (
       <button
         title="Settings"
-        onClick={(e) => port.postMessage({ type: "OPEN_OPTIONS_PAGE" })}
+        onClick={e=>setText("options")}
       >
         <CogIcon />
       </button>
@@ -228,5 +230,8 @@ export default function SummaryBox(): JSX.Element {
 
   if (text === "loading")
     return <Wrapper elements={["Summarizing... ", <Spinner />]} />;
+  else if(text === "options") {
+    return <Wrapper elements={[<Options exitButton={<button onClick={async e=>setYoutubeVideoInfoAndSendToBgScript(await getVideoIdAndTranscriptObject())}>back to summary</button>}/>]} />;
+  }
   return <Wrapper elements={[text]} />;
 }

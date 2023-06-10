@@ -3,8 +3,8 @@ import { useState, useEffect } from "preact/hooks";
 const GPT_LANGUAGE: string[] = [
   "English",
   "Spanish",
-  "Chinese (Simplified)",
-  "Chinese (Traditional)",
+  "Simplified Chinese",
+  "Traditional Chinese",
   "French",
   "Arabic",
   "Russian",
@@ -46,7 +46,7 @@ async function setOptionsHash(optionsHash: OptionsHash) {
     .then(() => console.log("Value is set"));
 }
 
-export function Options() {
+export function Options({ exitButton = undefined }: { exitButton?: JSX.Element | undefined }): JSX.Element {
   const [curSettings, setCurSettings] =
     useState<OptionsHash>(optionsHashDefaults);
   const [syncs, setSyncs] = useState<number>(0);
@@ -81,7 +81,7 @@ export function Options() {
 
   return (
     <div>
-      <h2>Youtube Transcript Gpt Options</h2>
+      <h2>Youtube Video Summary Options</h2>
 
       <div style={{ margin: "10px" }}>
         <label for="language">Summary language: </label>
@@ -129,7 +129,7 @@ export function Options() {
             setSyncs(syncs + 1);
           }}
         >
-          save
+          <b>save</b>
         </button>
         &nbsp;&nbsp;
         <button
@@ -141,6 +141,9 @@ export function Options() {
         >
           reset
         </button>
+        &nbsp;&nbsp;
+        {exitButton && exitButton}
+        
         {status}
       </div>
     </div>
