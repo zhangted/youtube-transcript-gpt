@@ -46,7 +46,7 @@ async function setOptionsHash(optionsHash: OptionsHash) {
     .then(() => console.log("Value is set"));
 }
 
-export function Options({ exitButton = undefined }: { exitButton?: JSX.Element | undefined }): JSX.Element {
+export function Options({ exitButton = undefined, autoSaveOnChange = false }: { exitButton?: JSX.Element | undefined, autoSaveOnChange?: boolean }): JSX.Element {
   const [curSettings, setCurSettings] =
     useState<OptionsHash>(optionsHashDefaults);
   const [syncs, setSyncs] = useState<number>(0);
@@ -63,7 +63,10 @@ export function Options({ exitButton = undefined }: { exitButton?: JSX.Element |
           curSettings
         )
       )
-      .then(setCurSettings);
+      .then(fetchedSettings=>{
+        const changed = JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings)
+        if(changed) setCurSettings(fetchedSettings)
+      })
 
   useEffect(() => {
     getSetCurSettings();
@@ -74,22 +77,50 @@ export function Options({ exitButton = undefined }: { exitButton?: JSX.Element |
     console.log("refetch settings");
   }, [syncs]);
 
+  useEffect(() => {
+    if(autoSaveOnChange) saveOptions();
+  }, [curSettings])
+
   const afterSave = (msgEle: JSX.Element): void => {
     setStatus(msgEle);
     setTimeout(() => setStatus(<span></span>), 3000);
   };
+
+  const saveOptions = async (providedObj?: OptionsHash) => {
+    const obj = providedObj ? providedObj : {
+      // validations here
+      gpt_language: GPT_LANGUAGE.includes(curSettings.gpt_language)
+        ? curSettings.gpt_language
+        : optionsHashDefaults.gpt_language,
+      response_tokens: curSettings.response_tokens >= 150 && curSettings.response_tokens <= 500
+        ? curSettings.response_tokens
+        : optionsHashDefaults.response_tokens
+    }
+    await setOptionsHash(obj)
+    .then(()=>{
+      const showSaveMsg = (autoSaveOnChange && syncs !== 0) || !autoSaveOnChange
+      if(showSaveMsg) afterSave(<div style={{ color: "green" }}>Saved!</div>);
+      setSyncs(syncs + 1)
+    })
+    .catch(e=>afterSave(<div style={{ color: "red" }}>Error! Couldn't save.</div>));
+  }
+
+  const resetOptions = async (e: Event) => {
+    await saveOptions(optionsHashDefaults)
+    setSyncs(syncs + 1);
+  }
 
   return (
     <div>
       <h2>Youtube Video Summary Options</h2>
 
       <div style={{ margin: "10px" }}>
-        <label for="language">Summary language: </label>
+        <div><label for="language">Summary language: </label></div>
         <select
           name="language"
           id="language"
           value={curSettings.gpt_language}
-          onChange={(e: Event) => {
+          onChange={async(e: Event) => {
             const ele = e.target as HTMLOptionElement;
             setCurSettings({ ...curSettings, gpt_language: ele.value });
           }}
@@ -101,9 +132,9 @@ export function Options({ exitButton = undefined }: { exitButton?: JSX.Element |
       </div>
 
       <div style={{ margin: "10px" }}>
-        <label for="response_tokens">Suggested Summary Length: </label>
+        <div><label for="response_tokens">Suggested Summary Length: </label></div>
         <input 
-          onInput={(e: Event) => {
+          onMouseUp={async(e: Event) => {
             const ele = e.target as HTMLOptionElement;
             setCurSettings({ ...curSettings, response_tokens: Number(ele.value) || optionsHashDefaults.response_tokens });
           }}
@@ -114,37 +145,16 @@ export function Options({ exitButton = undefined }: { exitButton?: JSX.Element |
       </div>
 
       <div style={{ margin: "10px" }}>
-        <button
-          onClick={async (e) => {
-            await setOptionsHash({
-              // validations here
-              gpt_language: GPT_LANGUAGE.includes(curSettings.gpt_language)
-                ? curSettings.gpt_language
-                : optionsHashDefaults.gpt_language,
-              response_tokens: curSettings.response_tokens >= 150 && curSettings.response_tokens <= 500
-                ? curSettings.response_tokens
-                : optionsHashDefaults.response_tokens
-            });
-            afterSave(<div style={{ color: "green" }}>saved!</div>);
-            setSyncs(syncs + 1);
-          }}
-        >
-          <b>save</b>
-        </button>
+        {!autoSaveOnChange && <button onClick={async()=>await saveOptions()}>
+          <b>Save</b>
+        </button>}
         &nbsp;&nbsp;
-        <button
-          onClick={async (e) => {
-            await setOptionsHash(optionsHashDefaults);
-            afterSave(<div style={{ color: "brown" }}>settings reset!</div>);
-            setSyncs(syncs + 1);
-          }}
-        >
-          reset
+        <button onClick={resetOptions}>
+          Reset
         </button>
         &nbsp;&nbsp;
         {exitButton && exitButton}
-        
-        {status}
+        <div style={{ height: '15px', margin: '4px 0 0 0' }}>{status}</div>
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ const getOnMountText = (): string =>
   getYoutubeVideoId() === "" ? "" : "loading";
 const calcIsDarkMode = (): boolean =>
   document.querySelector("html[dark]") !== null;
+const scrollToTop = (): void =>
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
 const getYoutubeVideoId = (
   currentHref: string = window.location.href
@@ -87,7 +89,7 @@ export default function SummaryBox(): JSX.Element {
       if (message.type === MESSAGE_TYPES.SERVER_SENT_EVENTS_END)
         return setShowRefresh(true);
       else if(message.type === MESSAGE_TYPES.SERVER_ERROR_RESPONSE) {
-        setTimeout(async() => setYoutubeVideoInfoAndSendToBgScript(await getVideoIdAndTranscriptObject()), 800);
+        setTimeout(async() => await getTranscriptAndSendToBgScript(), 800);
         return
       }
       setText(getTextToInsert(message));
@@ -179,12 +181,15 @@ export default function SummaryBox(): JSX.Element {
     (): JSX.Element => (
       <button
         title="Settings"
-        onClick={e=>setText("options")}
+        onClick={async e=> {
+          text !== "options" ? setText("options") : await getTranscriptAndSendToBgScript();
+          scrollToTop();
+        }}
       >
         <CogIcon />
       </button>
     ),
-    []
+    [text]
   );
 
   const wrapperCssAttrs: Record<string, string> = {
@@ -231,7 +236,17 @@ export default function SummaryBox(): JSX.Element {
   if (text === "loading")
     return <Wrapper elements={["Summarizing... ", <Spinner />]} />;
   else if(text === "options") {
-    return <Wrapper elements={[<Options exitButton={<button onClick={async e=>setYoutubeVideoInfoAndSendToBgScript(await getVideoIdAndTranscriptObject())}>back to summary</button>}/>]} />;
+    return <Wrapper elements={[<Options 
+      autoSaveOnChange={true} 
+      exitButton={
+        <button 
+          onClick={
+            async e=>{
+              scrollToTop();
+              await getTranscriptAndSendToBgScript();
+            }}>
+              Back to summary
+        </button>}/>]} />;
   }
   return <Wrapper elements={[text]} />;
 }
