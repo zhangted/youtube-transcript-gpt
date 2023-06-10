@@ -41,7 +41,7 @@ async function handleVideoTranscriptMsg(
     controller.signal,
     sendToReactComponent,
     handleInvalidCreds,
-    handleServerError,
+    handleServerError
   );
   cancelAbort();
 

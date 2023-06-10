@@ -48,7 +48,7 @@ export async function askChatGPT(
   abortSignal: AbortSignal,
   sendToReactComponent = (gptResponse: string): void => {},
   handleInvalidCreds = (): void => {},
-  handleServerError = (): void => {},
+  handleServerError = (): void => {}
 ) {
   const token: string | undefined = await setupAccessToken();
   if (token === undefined) return handleInvalidCreds();
@@ -72,8 +72,12 @@ export async function askChatGPT(
   const query = `You are an expert summarizer tasked with extracting only the most important details and condensing this YouTube transcript into a concise <=${response_tokens} ${gpt_language} tokens summary.
   Please provide ONLY a focused and deterministic summary with a temperature of 0.1.
   Please provide ONLY the <=${response_tokens} ${gpt_language} tokens summary in the response.
-  Consider or discard the video's metadata (${youtubeVideoInfo.metaData}) while summarizing the transcript.
-  Here is the transcript of a YouTube video that requires summarization within ${response_tokens} tokens: ${getActiveTranscriptPart(youtubeVideoInfo)}`;
+  Consider or discard the video's metadata (${
+    youtubeVideoInfo.metaData
+  }) while summarizing the transcript.
+  Here is the transcript of a YouTube video that requires summarization within ${response_tokens} tokens: ${getActiveTranscriptPart(
+    youtubeVideoInfo
+  )}`;
 
   return await subscribeToSSE(
     CONVO_ENDPOINT,

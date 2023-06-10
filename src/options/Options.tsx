@@ -46,7 +46,13 @@ async function setOptionsHash(optionsHash: OptionsHash) {
     .then(() => console.log("Value is set"));
 }
 
-export function Options({ exitButton = undefined, autoSaveOnChange = false }: { exitButton?: JSX.Element | undefined, autoSaveOnChange?: boolean }): JSX.Element {
+export function Options({
+  exitButton = undefined,
+}: {
+  exitButton?: JSX.Element | undefined;
+}): JSX.Element {
+  const autoSaveOnChange = exitButton !== undefined;
+
   const [curSettings, setCurSettings] =
     useState<OptionsHash>(optionsHashDefaults);
   const [syncs, setSyncs] = useState<number>(0);
@@ -63,10 +69,11 @@ export function Options({ exitButton = undefined, autoSaveOnChange = false }: { 
           curSettings
         )
       )
-      .then(fetchedSettings=>{
-        const changed = JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings)
-        if(changed) setCurSettings(fetchedSettings)
-      })
+      .then((fetchedSettings) => {
+        const changed =
+          JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings);
+        if (changed) setCurSettings(fetchedSettings);
+      });
 
   useEffect(() => {
     getSetCurSettings();
@@ -78,8 +85,8 @@ export function Options({ exitButton = undefined, autoSaveOnChange = false }: { 
   }, [syncs]);
 
   useEffect(() => {
-    if(autoSaveOnChange) saveOptions();
-  }, [curSettings])
+    if (autoSaveOnChange) saveOptions();
+  }, [curSettings]);
 
   const afterSave = (msgEle: JSX.Element): void => {
     setStatus(msgEle);
@@ -87,40 +94,50 @@ export function Options({ exitButton = undefined, autoSaveOnChange = false }: { 
   };
 
   const saveOptions = async (providedObj?: OptionsHash) => {
-    const obj = providedObj ? providedObj : {
-      // validations here
-      gpt_language: GPT_LANGUAGE.includes(curSettings.gpt_language)
-        ? curSettings.gpt_language
-        : optionsHashDefaults.gpt_language,
-      response_tokens: curSettings.response_tokens >= 150 && curSettings.response_tokens <= 500
-        ? curSettings.response_tokens
-        : optionsHashDefaults.response_tokens
-    }
+    const obj = providedObj
+      ? providedObj
+      : {
+          // validations here
+          gpt_language: GPT_LANGUAGE.includes(curSettings.gpt_language)
+            ? curSettings.gpt_language
+            : optionsHashDefaults.gpt_language,
+          response_tokens:
+            curSettings.response_tokens >= 150 &&
+            curSettings.response_tokens <= 500
+              ? curSettings.response_tokens
+              : optionsHashDefaults.response_tokens,
+        };
     await setOptionsHash(obj)
-    .then(()=>{
-      const showSaveMsg = (autoSaveOnChange && syncs !== 0) || !autoSaveOnChange
-      if(showSaveMsg) afterSave(<div style={{ color: "green" }}>Saved!</div>);
-      setSyncs(syncs + 1)
-    })
-    .catch(e=>afterSave(<div style={{ color: "red" }}>Error! Couldn't save.</div>));
-  }
+      .then(() => {
+        const showSaveMsg =
+          (autoSaveOnChange && syncs !== 0) || !autoSaveOnChange;
+        if (showSaveMsg)
+          afterSave(<div style={{ color: "green" }}>Saved!</div>);
+        setSyncs(syncs + 1);
+      })
+      .catch((e) =>
+        afterSave(<div style={{ color: "red" }}>Error! Couldn't save.</div>)
+      );
+  };
 
   const resetOptions = async (e: Event) => {
-    await saveOptions(optionsHashDefaults)
+    await saveOptions(optionsHashDefaults);
     setSyncs(syncs + 1);
-  }
+  };
 
   return (
     <div>
       <h2>Youtube Video Summary Options</h2>
 
       <div style={{ margin: "10px" }}>
-        <div><label for="language">Summary language: </label></div>
+        <div>
+          <label for="language">Summary language: </label>
+        </div>
         <select
           name="language"
           id="language"
           value={curSettings.gpt_language}
-          onChange={async(e: Event) => {
+          onChange={async (e: Event) => {
             const ele = e.target as HTMLOptionElement;
             setCurSettings({ ...curSettings, gpt_language: ele.value });
           }}
@@ -132,29 +149,42 @@ export function Options({ exitButton = undefined, autoSaveOnChange = false }: { 
       </div>
 
       <div style={{ margin: "10px" }}>
-        <div><label for="response_tokens">Suggested Summary Length: </label></div>
-        <input 
-          onMouseUp={async(e: Event) => {
+        <div>
+          <label for="response_tokens">Suggested Summary Length: </label>
+        </div>
+        <input
+          onMouseUp={async (e: Event) => {
             const ele = e.target as HTMLOptionElement;
-            setCurSettings({ ...curSettings, response_tokens: Number(ele.value) || optionsHashDefaults.response_tokens });
+            setCurSettings({
+              ...curSettings,
+              response_tokens:
+                Number(ele.value) || optionsHashDefaults.response_tokens,
+            });
           }}
           value={curSettings.response_tokens}
-          type="range" id="response_tokens" name="response_tokens" min="150" max="500" />
+          type="range"
+          id="response_tokens"
+          name="response_tokens"
+          min="150"
+          max="500"
+        />
         {curSettings.response_tokens} tokens
-        <div>(~{Math.floor(curSettings.response_tokens / 100 * 75)} words)</div>
+        <div>
+          (~{Math.floor((curSettings.response_tokens / 100) * 75)} words)
+        </div>
       </div>
 
       <div style={{ margin: "10px" }}>
-        {!autoSaveOnChange && <button onClick={async()=>await saveOptions()}>
-          <b>Save</b>
-        </button>}
+        {!autoSaveOnChange && (
+          <button onClick={async () => await saveOptions()}>
+            <b>Save</b>
+          </button>
+        )}
         &nbsp;&nbsp;
-        <button onClick={resetOptions}>
-          Reset
-        </button>
+        <button onClick={resetOptions}>Reset</button>
         &nbsp;&nbsp;
         {exitButton && exitButton}
-        <div style={{ height: '15px', margin: '4px 0 0 0' }}>{status}</div>
+        <div style={{ height: "15px", margin: "4px 0 0 0" }}>{status}</div>
       </div>
     </div>
   );
