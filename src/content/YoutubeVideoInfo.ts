@@ -119,8 +119,6 @@ export async function getYoutubeVideoInfo(
     const metaData: string =
       metaDataResult.status === "fulfilled" ? metaDataResult.value : "";
 
-    console.log(metaData);
-
     return new YoutubeVideoInfo(transcriptParts, 0, youtubeVideoId, metaData);
   });
 

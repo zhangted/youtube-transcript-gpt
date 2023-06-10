@@ -1,10 +1,11 @@
 import { defineManifest } from "@crxjs/vite-plugin";
 
 export default defineManifest({
-  name: "youtube-transcript-gpt",
+  name: "Youtube Video Summary",
+  author: "tedcbook@gmail.com",
   description:
     "Get youtube summaries by chatgpt injected automatically if the video has a transcript! ",
-  version: "0.0.6",
+  version: "0.0.7",
   manifest_version: 3,
   icons: {
     16: "img/logo-16.png",

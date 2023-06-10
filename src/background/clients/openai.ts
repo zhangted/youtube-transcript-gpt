@@ -68,15 +68,11 @@ export async function askChatGPT(
   const extensionSettings: OptionsHash = await getOptionsHash();
   const { gpt_language, response_tokens } = extensionSettings;
 
-  const query = `You are an award-winning, intuitive, writer and fact checker, who thinks step by step, maximizing on signal/content, minimizing noise, and making no assumptions about names. Summarize this youtube transcript in ${
-    gpt_language
-  } in ${response_tokens} tokens
-  ${
-    youtubeVideoInfo.metaData ? `(Metadata: ${youtubeVideoInfo.metaData})` : ""
-  }(Transcript[page ${youtubeVideoInfo.activeTranscriptPartId + 1} of ${
-    youtubeVideoInfo.transcriptParts.length
-  }]: 
-  ${getActiveTranscriptPart(youtubeVideoInfo)})`;
+  const query = `You are an expert summarizer tasked with extracting only the most important details and condensing this YouTube transcript into a concise ${gpt_language} summary within ${response_tokens} tokens.
+  Please provide a focused and deterministic summary with a temperature of 0.1.
+  Please provide ONLY the summary in the response.
+  Consider or discard the video's metadata (${youtubeVideoInfo.metaData}) while summarizing the transcript.
+  Here is the transcript of a YouTube video that requires summarization within ${response_tokens} tokens: ${getActiveTranscriptPart(youtubeVideoInfo)}`;
 
   return await subscribeToSSE(
     CONVO_ENDPOINT,
@@ -99,10 +95,6 @@ export async function askChatGPT(
         model: "text-davinci-002-render-sha",
         parent_message_id: uuidv4(),
         is_visible: false,
-        options: {
-          temperature: 0.3,
-          max_tokens: response_tokens
-        }
       }),
     },
     onMessage
