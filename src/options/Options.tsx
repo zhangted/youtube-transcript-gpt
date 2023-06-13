@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "preact/hooks";
 import { SUMMARIZATION_METHOD } from "./options/SUMMARIZATION_METHOD";
 import { GPT_LANGUAGE } from "./options/GPT_LANGUAGE";
 import { MIN_RESPONSE_TOKENS, MAX_RESPONSE_TOKENS } from "./options/RESPONSE_TOKENS";
-import { optionsHashDefaults, OptionsHash, OptionsHashKey, settingsKeys, getOptionsHash, setOptionsHash} from "./options/OptionsHash";
+import { optionsHashDefaults, OptionsHash, OptionsHashKey, settingsKeys, getOptionsHash, setOptionsHash, setupOptions} from "./options/OptionsHash";
 
 export function Options({
   exitButton = undefined,
@@ -17,16 +17,7 @@ export function Options({
   const [status, setStatus] = useState<JSX.Element>();
 
   const getSetCurSettings = () =>
-    getOptionsHash()
-      .then((curSettings) =>
-        settingsKeys.reduce(
-          (curSettings: OptionsHash, key: OptionsHashKey): OptionsHash => {
-            if (!curSettings[key]) curSettings[key] = optionsHashDefaults[key];
-            return curSettings;
-          },
-          curSettings
-        )
-      )
+    setupOptions()
       .then((fetchedSettings) => {
         const changed =
           JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings);

@@ -22,7 +22,6 @@ import {
   SunIcon,
   CogIcon,
 } from "./icons";
-import { JSX } from "preact";
 
 const getOnMountText = (): string =>
   getYoutubeVideoId() === "" ? "" : "loading";
@@ -127,6 +126,9 @@ export default function SummaryBox(): JSX.Element {
       else if(message.type === MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING) {
         return handleChangedChromeSetting(message);
       }
+      else if(message.type === MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT) {
+        return getTranscriptAndSendToBgScript();
+      }
       setText(getMainTextToInsert(message));
       if (
         [MESSAGE_TYPES.NO_TRANSCRIPT, MESSAGE_TYPES.NO_ACCESS_TOKEN].includes(
@@ -154,13 +156,12 @@ export default function SummaryBox(): JSX.Element {
     }, []);
 
   useEffect(() => {
+    port.onMessage.addListener(listenForBgScriptResponse);
     port.postMessage({
       type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
       youtubeVideoId: getYoutubeVideoId(),
       tabUUID: tabUUID.current,
     })
-    port.onMessage.addListener(listenForBgScriptResponse);
-    getTranscriptAndSendToBgScript();
 
     return () => {
       port.onMessage.removeListener(listenForBgScriptResponse);
@@ -260,7 +261,7 @@ export default function SummaryBox(): JSX.Element {
     color: isDarkMode ? "white" : "black",
     fontSize: "18px",
     borderRadius: "8px",
-    padding: "19px 19px 34px 19px",
+    padding: "19px",
     minHeight: "100px",
   };
 
@@ -276,7 +277,7 @@ export default function SummaryBox(): JSX.Element {
             {summPageByPage() && youtubeVideoInfo.hasPrevPage() && <PrevPageButton />}&nbsp;
             {summPageByPage() && youtubeVideoInfo.hasNextPage() && <NextPageButton />}
             <div style={{ float: "right" }}>
-              <RefreshButton />
+              {youtubeVideoInfo.hasTranscript() && <RefreshButton />}
               &nbsp;
               <ToggleThemeButton />
               &nbsp;
@@ -290,6 +291,7 @@ export default function SummaryBox(): JSX.Element {
       wrapperCssAttrs,
       text,
       summMethod,
+      youtubeVideoInfo,
       showRefresh,
       ToggleThemeButton,
       PrevPageButton,

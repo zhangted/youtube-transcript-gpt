@@ -33,3 +33,19 @@ export async function setOptionsHash(optionsHash: OptionsHash) {
     .set(optionsHash)
     .then(() => console.log("Value is set"));
 }
+
+export async function setupOptions(): Promise<OptionsHash> {
+  return await getOptionsHash()
+    .then((curSettings: OptionsHash) =>
+    settingsKeys.reduce(
+      (curSettings: OptionsHash, key: OptionsHashKey): OptionsHash => {
+        if (!curSettings[key]) curSettings[key] = optionsHashDefaults[key];
+        return curSettings;
+      },
+      curSettings
+    ))
+    .then(async(settings: OptionsHash) => {
+      await setOptionsHash(settings)
+      return settings;
+    })
+}

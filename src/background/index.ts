@@ -10,6 +10,9 @@ import {
 } from "../utils/MessageTypes";
 import { activeVideoIds } from "./utils/activeVideoId";
 import summarize from "./utils/summarize";
+import { setupOptions } from "../options/options/OptionsHash";
+
+(async () => await setupOptions());
 
 Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
   port.onMessage.addListener(
@@ -29,6 +32,7 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
           const activeVideoIdMsg = message as PingBgScriptActiveYoutubeVideoIdMessage;
           const { youtubeVideoId, tabUUID } = activeVideoIdMsg;
           activeVideoIds.set(tabUUID, youtubeVideoId);
+          port.postMessage({ type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT })
           break;
         default:
           console.warn(`Unsupported message type: ${message.type}`);

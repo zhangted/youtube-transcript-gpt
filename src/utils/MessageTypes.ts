@@ -10,6 +10,7 @@ export const MESSAGE_TYPES = {
   SERVER_SENT_EVENTS_END: "SERVER_SENT_EVENTS_END",
   SERVER_ERROR_RESPONSE: "SERVER_ERROR_RESPONSE",
   PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID: "PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID",
+  PING_CONTENT_SCRIPT_FOR_TRANSCRIPT: "PING_CONTENT_SCRIPT_FOR_TRANSCRIPT",
   CHANGED_CHROME_EXT_SETTING: "CHANGED_CHROME_EXT_SETTING",
 };
 
@@ -54,6 +55,10 @@ export interface PingBgScriptActiveYoutubeVideoIdMessage {
   tabUUID: string,
 }
 
+export interface PingContentScriptForTranscriptMessage {
+  type: typeof MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT
+}
+
 export interface ChangedChromeExtSettingMessage {
   type: typeof MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING;
   settingKey: OptionsHashKey;
@@ -72,4 +77,5 @@ export type MessageFromBgScript =
   | YoutubeVideoInfoMessage
   | NoAccessTokenMessage
   | GptResponseMessage
-  | ServerSentEventsEndedMessage;
+  | ServerSentEventsEndedMessage
+  | PingContentScriptForTranscriptMessage;
