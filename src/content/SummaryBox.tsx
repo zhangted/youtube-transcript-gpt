@@ -1,5 +1,4 @@
 import "../assets/SummaryBox.css";
-import { v4 as uuidv4 } from "uuid";
 import getVideoId from "get-video-id";
 import Browser from "webextension-polyfill";
 import { getYoutubeVideoInfo, YoutubeVideoInfo } from "./YoutubeVideoInfo";
@@ -63,8 +62,8 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
   }
 };
 
-export default function SummaryBox(): JSX.Element {
-  const tabUUID = useRef<string>(uuidv4());
+export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
+  const tabUUID = useRef<string>(uuid);
   const [port] = useState<Browser.Runtime.Port>(Browser.runtime.connect());
   const [text, setText] = useState<string>(getOnMountText());
   const [youtubeVideoInfo, setYoutubeVideoInfo] = useState<YoutubeVideoInfo>(

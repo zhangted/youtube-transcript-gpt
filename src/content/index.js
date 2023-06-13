@@ -1,8 +1,10 @@
 import { h, render } from 'preact';
+import { v4 as uuidv4 } from "uuid";
 import SummaryBox from './SummaryBox';
 
 console.info('the content script is running');
 
+let tabUUID = uuidv4();
 let prevUrl = null;
 
 function createPixel() {
@@ -23,7 +25,7 @@ function updateSummaryWrapper() {
     if (pixel.offsetWidth > 0) {
       const summaryWrapper = document.createElement('div');
       summaryWrapper.id = 'summary-wrapper';
-      render(h(SummaryBox), summaryWrapper);
+      render(h(SummaryBox, { uuid: tabUUID }), summaryWrapper);
       injectPt.prepend(summaryWrapper);
     }
 
