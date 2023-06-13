@@ -28,7 +28,7 @@ export default defineManifest({
   content_scripts: [
     {
       matches: ["https://www.youtube.com/*", "https://youtube.com/*"],
-      js: ["src/content/index.js"],
+      js: ["src/content/index.ts"],
     },
   ],
   web_accessible_resources: [

@@ -71,15 +71,19 @@ export default async function askChatGPT(
       sseConnectionActive = false;
       return;
     }
-    let data: undefined | { message?: { content?: { parts?: string[] } } };
+    let data: undefined | { message?: { 
+      author?: { role?: string }
+      content?: { parts?: string[] } } };
     try {
       data = JSON.parse(message);
     } catch (err) {
       console.error(err);
       return;
     }
+    const fromAssistant = data?.message?.author?.role === 'assistant';
     const text: string | undefined = data?.message?.content?.parts?.[0];
-    if (text && isVideoIdActive(tabUUID, videoId)) streamingCallback(text);
+    // console.log(text, data)
+    if (text && fromAssistant && isVideoIdActive(tabUUID, videoId)) streamingCallback(text);
   };
 
   const extensionSettings: OptionsHash = await getOptionsHash();
@@ -87,6 +91,7 @@ export default async function askChatGPT(
 
   const prompt = getPrompt(transcript, response_tokens, gpt_language, metadata, forcedTokenSuggestion);
 
+  // await logModels(token);
   await waitForSSEConnection();
 
   sseConnectionActive = true;
@@ -157,4 +162,9 @@ export default async function askChatGPT(
 //     headers: getHeaders(token),
 //     body: JSON.stringify({ is_visible: false })
 //   })
+// }
+
+// async function logModels(token: string) {
+//   return await fetch(`${BASE_URL}/backend-api/models`, { headers: getHeaders(token)})
+//     .then(res => res.json()).then(console.log)
 // }
