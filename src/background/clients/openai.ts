@@ -49,6 +49,7 @@ async function waitForSSEConnection() {
 }
 
 export default async function askChatGPT(
+  tabUUID: string,
   videoId: string,
   transcript: string,
   metadata: string,
@@ -78,7 +79,7 @@ export default async function askChatGPT(
       return;
     }
     const text: string | undefined = data?.message?.content?.parts?.[0];
-    if (text && isVideoIdActive(videoId)) streamingCallback(text);
+    if (text && isVideoIdActive(tabUUID, videoId)) streamingCallback(text);
   };
 
   const extensionSettings: OptionsHash = await getOptionsHash();

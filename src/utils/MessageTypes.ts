@@ -16,6 +16,7 @@ export const MESSAGE_TYPES = {
 export interface YoutubeVideoInfoMessage {
   type: typeof MESSAGE_TYPES.VIDEO_TRANSCRIPT;
   data: YoutubeVideoInfo;
+  tabUUID: string;
 }
 
 export interface NoTranscriptMessage {
@@ -47,9 +48,10 @@ export interface ServerErrorResponseMessage {
 }
 
 export interface PingBgScriptActiveYoutubeVideoIdMessage {
-  // tell bg script about current youtube video id
+  // tell bg script about current youtube video id on a tab
   type: typeof MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID;
   youtubeVideoId: string,
+  tabUUID: string,
 }
 
 export interface ChangedChromeExtSettingMessage {
@@ -64,7 +66,7 @@ export type MessageFromContentScript =
   | LongTranscriptSummarizationStatusMessage
   | ServerErrorResponseMessage
   | ChangedChromeExtSettingMessage
-  | PingBgScriptActiveYoutubeVideoIdMessage
+  | PingBgScriptActiveYoutubeVideoIdMessage;
 export type MessageFromBgScript =
   | NoTranscriptMessage
   | YoutubeVideoInfoMessage

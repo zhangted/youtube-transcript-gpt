@@ -15,10 +15,10 @@ export default async function summarize(
 ) {
   let controller: AbortController = new AbortController();
 
-  const youtubeVideoInfo: YoutubeVideoInfo = message.data;
+  const { tabUUID, data: youtubeVideoInfo }: { tabUUID: string, data: YoutubeVideoInfo} = message;
   const { youtubeVideoId }: { youtubeVideoId: string } = youtubeVideoInfo;
 
-  if(!isVideoIdActive(youtubeVideoId)) return;
+  if(!isVideoIdActive(tabUUID, youtubeVideoId)) return;
 
   const sendToReactComponent = (gptResponse: string): void =>
     port.postMessage({
@@ -36,6 +36,7 @@ export default async function summarize(
 
   if(youtubeVideoInfo.transcriptParts.length === 1 || shouldSummPagebyPage(summarization_method)) {
     await askChatGPT(
+      tabUUID,
       youtubeVideoId,
       youtubeVideoInfo.transcriptParts[youtubeVideoInfo.activeTranscriptPartId],
       youtubeVideoInfo.metaData,
@@ -47,7 +48,7 @@ export default async function summarize(
   } else if(shouldSummAggr(summarization_method)) {
     let aggrSummary: string = '';
     for(let i = 0; i < youtubeVideoInfo.transcriptParts.length; i++) {
-      if(!isVideoIdActive(youtubeVideoId)) break;
+      if(!isVideoIdActive(tabUUID, youtubeVideoId)) break;
       const transcriptPart = youtubeVideoInfo.transcriptParts[i];
       let curAggr = aggrSummary;
       let missedPages = [];
@@ -62,6 +63,7 @@ export default async function summarize(
       console.log(`summarizing ${youtubeVideoId} pg`, page)
 
       await askChatGPT(
+        tabUUID,
         youtubeVideoId,
         aggrSummary + transcriptPart,
         // combine any prev page gpt summary + current transcript part

@@ -1,15 +1,12 @@
 // this module will be accessed by diff modules in the bg script
 
-export class ActiveVideoId {
-  constructor(
-    public videoId: string = ''
-  ) {}
+type tabUUID = string;
+type youtubeVideoId = string;
+
+const activeVideoIds = new Map<tabUUID, youtubeVideoId>();
+
+function isVideoIdActive(tabUUID: string, videoId: string): boolean {
+  return activeVideoIds.get(tabUUID) === videoId
 }
 
-const activeVideoId = new ActiveVideoId();
-
-function isVideoIdActive(id: string): boolean {
-  return activeVideoId.videoId === id;
-}
-
-export { activeVideoId, isVideoIdActive };
+export { activeVideoIds, isVideoIdActive };

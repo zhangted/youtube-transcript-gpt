@@ -1,8 +1,9 @@
 import "../assets/SummaryBox.css";
+import { v4 as uuidv4 } from "uuid";
 import getVideoId from "get-video-id";
 import Browser from "webextension-polyfill";
 import { getYoutubeVideoInfo, YoutubeVideoInfo } from "./YoutubeVideoInfo";
-import { useState, useEffect, useCallback } from "preact/hooks";
+import { useRef, useState, useEffect, useCallback } from "preact/hooks";
 import { getOptionsHash } from "../options/options/OptionsHash";
 import { shouldSummPagebyPage } from "../options/options/SUMMARIZATION_METHOD";
 import {
@@ -36,10 +37,11 @@ const getYoutubeVideoId = (
   return service === "youtube" && id ? id : "";
 };
 
-const sendTranscriptToBgScript = (
+const sendTranscriptToBgScript = async(
   port: Browser.Runtime.Port,
-  videoInfoInstance: YoutubeVideoInfo
-) => port.postMessage(videoInfoInstance.getPostMessageObject());
+  videoInfoInstance: YoutubeVideoInfo,
+  tabUUID: string,
+) => port.postMessage({...videoInfoInstance.getPostMessageObject(), tabUUID})
 
 const getMainTextToInsert = (message: MessageFromBgScript): string => {
   let youtubeVideoId: string, gptResponse: string, page: number;
@@ -63,6 +65,7 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
 };
 
 export default function SummaryBox(): JSX.Element {
+  const tabUUID = useRef<string>(uuidv4());
   const [port] = useState<Browser.Runtime.Port>(Browser.runtime.connect());
   const [text, setText] = useState<string>(getOnMountText());
   const [youtubeVideoInfo, setYoutubeVideoInfo] = useState<YoutubeVideoInfo>(
@@ -96,7 +99,7 @@ export default function SummaryBox(): JSX.Element {
         setText("loading");
         cancelShowRefreshLater();
         setCancelShowRefreshLater(showRefreshLater());
-        sendTranscriptToBgScript(port, youtubeVideoInfo);
+        sendTranscriptToBgScript(port, youtubeVideoInfo, tabUUID.current);
       }
     },
     []
@@ -154,6 +157,7 @@ export default function SummaryBox(): JSX.Element {
     port.postMessage({
       type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
       youtubeVideoId: getYoutubeVideoId(),
+      tabUUID: tabUUID.current,
     })
     port.onMessage.addListener(listenForBgScriptResponse);
     getTranscriptAndSendToBgScript();
