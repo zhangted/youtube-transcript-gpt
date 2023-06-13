@@ -19,7 +19,16 @@ async function* createAsyncIterableFromStream(
   }
 }
 
-export default async function subscribeToSSE(
+export class SSEError extends Error{
+  public status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.message = message;
+    this.status = status;
+  }
+}
+
+export async function subscribeToSSE(
   resourceURL: string,
   fetchOptions: RequestInit = {},
   onMessage: (msg: string) => void = () => {}
@@ -31,9 +40,9 @@ export default async function subscribeToSSE(
       error?.detail?.message ??
       (typeof error?.detail === "string" ? error.detail : undefined);
     if (errorMessage) {
-      throw new Error(errorMessage);
+      throw new SSEError(errorMessage, response.status);
     } else {
-      throw new Error(`Error ${response.status}`);
+      throw new SSEError(`Error ${response.status}`, response.status);
     }
   }
   const parser = createParser((event: ParseEvent): void => {

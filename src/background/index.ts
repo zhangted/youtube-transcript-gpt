@@ -1,52 +1,15 @@
 console.log("the bg script is running");
 
 import Browser from "webextension-polyfill";
-import { YoutubeVideoInfo } from "../content/YoutubeVideoInfo";
 import {
   MessageFromContentScript,
   MESSAGE_TYPES,
   NoTranscriptMessage,
   YoutubeVideoInfoMessage,
+  PingBgScriptActiveYoutubeVideoIdMessage,
 } from "../utils/MessageTypes";
-import { askChatGPT } from "./clients/openai";
-
-let controller: AbortController = new AbortController();
-
-async function handleVideoTranscriptMsg(
-  port: Browser.Runtime.Port,
-  message: YoutubeVideoInfoMessage
-) {
-  const youtubeVideoInfo: YoutubeVideoInfo = message.data;
-  const { youtubeVideoId }: { youtubeVideoId: string } = youtubeVideoInfo;
-
-  controller.abort();
-  controller = new AbortController();
-  const summaryTimeLimit = 30000;
-  const id = setTimeout(() => controller.abort(), summaryTimeLimit);
-  const cancelAbort = () => clearTimeout(id);
-
-  const sendToReactComponent = (gptResponse: string): void =>
-    port.postMessage({
-      type: MESSAGE_TYPES.GPT_RESPONSE,
-      youtubeVideoId,
-      gptResponse,
-    });
-  const handleInvalidCreds = (): void =>
-    port.postMessage({ type: MESSAGE_TYPES.NO_ACCESS_TOKEN });
-  const handleServerError = (): void =>
-    port.postMessage({ type: MESSAGE_TYPES.SERVER_ERROR_RESPONSE });
-
-  await askChatGPT(
-    message.data,
-    controller.signal,
-    sendToReactComponent,
-    handleInvalidCreds,
-    handleServerError
-  );
-  cancelAbort();
-
-  port.postMessage({ type: MESSAGE_TYPES.SERVER_SENT_EVENTS_END });
-}
+import { activeVideoId } from "./utils/activeVideoId";
+import summarize from "./utils/summarize";
 
 Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
   port.onMessage.addListener(
@@ -56,11 +19,15 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
       switch (message.type) {
         case MESSAGE_TYPES.VIDEO_TRANSCRIPT:
           const youtubeVideoInfoMsg = message as YoutubeVideoInfoMessage;
-          await handleVideoTranscriptMsg(port, youtubeVideoInfoMsg);
+          await summarize(port, youtubeVideoInfoMsg);
           break;
         case MESSAGE_TYPES.NO_TRANSCRIPT:
           const noTranscriptMsg = message as NoTranscriptMessage;
           port.postMessage(noTranscriptMsg);
+          break;
+        case MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID:
+          const activeVideoIdMsg = message as PingBgScriptActiveYoutubeVideoIdMessage;
+          activeVideoId.videoId = activeVideoIdMsg.youtubeVideoId;
           break;
         default:
           console.warn(`Unsupported message type: ${message.type}`);
@@ -68,4 +35,16 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
       }
     }
   );
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    // If summarization method setting is changed
+    if (area === 'sync' && changes.summarization_method) {
+      const newValue = changes.summarization_method.newValue;
+      port.postMessage({ 
+        type: MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING,
+        settingKey: 'summarization_method',
+        data: newValue,
+      })
+    }
+  });
 });

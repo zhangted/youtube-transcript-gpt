@@ -1,12 +1,16 @@
 import { YoutubeVideoInfo } from "../content/YoutubeVideoInfo";
+import { OptionsHashKey } from "../options/options/OptionsHash";
 
 export const MESSAGE_TYPES = {
   VIDEO_TRANSCRIPT: "VIDEO_TRANSCRIPT",
   NO_TRANSCRIPT: "NO_TRANSCRIPT",
   NO_ACCESS_TOKEN: "NO_ACCESS_TOKEN",
   GPT_RESPONSE: "GPT_RESPONSE",
+  LONG_TRANSCRIPT_SUMMARIZATION_STATUS: "LONG_TRANSCRIPT_SUMMARIZATION_STATUS",
   SERVER_SENT_EVENTS_END: "SERVER_SENT_EVENTS_END",
   SERVER_ERROR_RESPONSE: "SERVER_ERROR_RESPONSE",
+  PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID: "PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID",
+  CHANGED_CHROME_EXT_SETTING: "CHANGED_CHROME_EXT_SETTING",
 };
 
 export interface YoutubeVideoInfoMessage {
@@ -28,6 +32,12 @@ export interface GptResponseMessage {
   gptResponse: string;
 }
 
+export interface LongTranscriptSummarizationStatusMessage {
+  type: typeof MESSAGE_TYPES.LONG_TRANSCRIPT_SUMMARIZATION_STATUS;
+  youtubeVideoId: string;
+  page: number;
+}
+
 export interface ServerSentEventsEndedMessage {
   type: typeof MESSAGE_TYPES.SERVER_SENT_EVENTS_END;
 }
@@ -36,10 +46,25 @@ export interface ServerErrorResponseMessage {
   type: typeof MESSAGE_TYPES.SERVER_ERROR_RESPONSE;
 }
 
+export interface PingBgScriptActiveYoutubeVideoIdMessage {
+  // tell bg script about current youtube video id
+  type: typeof MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID;
+  youtubeVideoId: string,
+}
+
+export interface ChangedChromeExtSettingMessage {
+  type: typeof MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING;
+  settingKey: OptionsHashKey;
+  data: string;
+}
+
 export type MessageFromContentScript =
   | NoTranscriptMessage
   | YoutubeVideoInfoMessage
-  | ServerErrorResponseMessage;
+  | LongTranscriptSummarizationStatusMessage
+  | ServerErrorResponseMessage
+  | ChangedChromeExtSettingMessage
+  | PingBgScriptActiveYoutubeVideoIdMessage
 export type MessageFromBgScript =
   | NoTranscriptMessage
   | YoutubeVideoInfoMessage

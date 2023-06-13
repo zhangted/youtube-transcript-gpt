@@ -1,50 +1,8 @@
-import { useState, useEffect } from "preact/hooks";
-
-const GPT_LANGUAGE: string[] = [
-  "English",
-  "Spanish",
-  "Simplified Chinese",
-  "Traditional Chinese",
-  "French",
-  "Arabic",
-  "Russian",
-  "Portuguese",
-  "German",
-  "Japanese",
-  "Hindi",
-  "Italian",
-  "Vietnamese",
-];
-
-export interface OptionsHash extends Record<string, string | number> {
-  // avail options
-  gpt_language: string;
-  response_tokens: number;
-}
-
-type OptionsHashKey = keyof OptionsHash;
-
-const optionsHashDefaults: OptionsHash = {
-  // defaults for each option
-  gpt_language: GPT_LANGUAGE[0],
-  response_tokens: 200,
-};
-
-const settingsKeys: OptionsHashKey[] = Object.keys(
-  optionsHashDefaults
-) as OptionsHashKey[];
-
-export async function getOptionsHash(): Promise<OptionsHash> {
-  const result = await chrome.storage.sync.get(settingsKeys);
-  return result as OptionsHash;
-}
-
-async function setOptionsHash(optionsHash: OptionsHash) {
-  console.log(optionsHash);
-  await chrome.storage.sync
-    .set(optionsHash)
-    .then(() => console.log("Value is set"));
-}
+import { useState, useEffect, useCallback } from "preact/hooks";
+import { SUMMARIZATION_METHOD } from "./options/SUMMARIZATION_METHOD";
+import { GPT_LANGUAGE } from "./options/GPT_LANGUAGE";
+import { MIN_RESPONSE_TOKENS, MAX_RESPONSE_TOKENS } from "./options/RESPONSE_TOKENS";
+import { optionsHashDefaults, OptionsHash, OptionsHashKey, settingsKeys, getOptionsHash, setOptionsHash} from "./options/OptionsHash";
 
 export function Options({
   exitButton = undefined,
@@ -102,10 +60,13 @@ export function Options({
             ? curSettings.gpt_language
             : optionsHashDefaults.gpt_language,
           response_tokens:
-            curSettings.response_tokens >= 150 &&
-            curSettings.response_tokens <= 500
+            curSettings.response_tokens >= MIN_RESPONSE_TOKENS &&
+            curSettings.response_tokens <= MAX_RESPONSE_TOKENS
               ? curSettings.response_tokens
               : optionsHashDefaults.response_tokens,
+          summarization_method: SUMMARIZATION_METHOD.includes(curSettings.summarization_method)
+            ? curSettings.summarization_method
+            : optionsHashDefaults.summarization_method,
         };
     await setOptionsHash(obj)
       .then(() => {
@@ -125,30 +86,41 @@ export function Options({
     setSyncs(syncs + 1);
   };
 
+  const SelectOptionSettingElement = useCallback((
+    options: string[], 
+    settingKey: OptionsHashKey,
+    headingText: string,
+  ): JSX.Element => 
+    <div style={{ margin: "10px" }}>
+      <div>
+        <label for="language">{headingText}</label>
+      </div>
+      <select
+        name={settingKey as string}
+        id={settingKey as string}
+        value={curSettings[settingKey]}
+        onChange={async (e: Event) => {
+          const ele = e.target as HTMLOptionElement;
+          const obj = { ...curSettings }
+          obj[settingKey] = ele.value
+          setCurSettings(obj);
+        }}
+      >
+        {options.map((opt) => (
+          <option value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
+  , [curSettings])
+
   return (
     <div>
       <h2>Youtube Video Summary Options</h2>
 
-      <div style={{ margin: "10px" }}>
-        <div>
-          <label for="language">Summary language: </label>
-        </div>
-        <select
-          name="language"
-          id="language"
-          value={curSettings.gpt_language}
-          onChange={async (e: Event) => {
-            const ele = e.target as HTMLOptionElement;
-            setCurSettings({ ...curSettings, gpt_language: ele.value });
-          }}
-        >
-          {GPT_LANGUAGE.map((lang) => (
-            <option value={lang}>{lang}</option>
-          ))}
-        </select>
-      </div>
+      {SelectOptionSettingElement(GPT_LANGUAGE, 'gpt_language', 'Summary language:')}
+      {SelectOptionSettingElement(SUMMARIZATION_METHOD, 'summarization_method', 'How to summarize long videos:')}
 
-      <div style={{ margin: "10px" }}>
+      {<div style={{ margin: "10px" }}>
         <div>
           <label for="response_tokens">Suggested Summary Length: </label>
         </div>
@@ -165,14 +137,14 @@ export function Options({
           type="range"
           id="response_tokens"
           name="response_tokens"
-          min="150"
-          max="500"
+          min={MIN_RESPONSE_TOKENS}
+          max={MAX_RESPONSE_TOKENS}
         />
         {curSettings.response_tokens} tokens
         <div>
           (~{Math.floor((curSettings.response_tokens / 100) * 75)} words)
         </div>
-      </div>
+      </div>}
 
       <div style={{ margin: "10px" }}>
         {!autoSaveOnChange && (

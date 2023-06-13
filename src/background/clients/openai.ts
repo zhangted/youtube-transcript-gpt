@@ -1,11 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
-import subscribeToSSE from "./SSE";
+import { subscribeToSSE, SSEError } from "./SSE";
 import ExpiryMap from "expiry-map";
-import {
-  YoutubeVideoInfo,
-  getActiveTranscriptPart,
-} from "../../content/YoutubeVideoInfo";
-import { getOptionsHash, OptionsHash } from "../../options/Options";
+import { getOptionsHash, OptionsHash } from "../../options/options/OptionsHash";
+import getPrompt from "../utils/getPrompt";
+import { isVideoIdActive } from "../utils/activeVideoId";
 
 const BASE_URL: string = "https://chat.openai.com";
 const AUTH_ENDPOINT: string = `${BASE_URL}/api/auth/session`;
@@ -43,18 +41,35 @@ function getHeaders(token: string): Record<string, string> {
   };
 }
 
-export async function askChatGPT(
-  youtubeVideoInfo: YoutubeVideoInfo,
+let sseConnectionActive: boolean = false;
+async function waitForSSEConnection() {
+  while (sseConnectionActive) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
+export default async function askChatGPT(
+  videoId: string,
+  transcript: string,
+  metadata: string,
   abortSignal: AbortSignal,
-  sendToReactComponent = (gptResponse: string): void => {},
+  streamingCallback = (gptResponse: string): void => {},
   handleInvalidCreds = (): void => {},
-  handleServerError = (): void => {}
+  handleServerError = (): void => {},
+  forcedTokenSuggestion: number = 200,
 ) {
   const token: string | undefined = await setupAccessToken();
-  if (token === undefined) return handleInvalidCreds();
+  const handleInvalidCredsExt = () => {
+    expirymap.clear();
+    handleInvalidCreds();
+  }
+  if (token === undefined) return handleInvalidCredsExt();
 
   const onMessage = (message: string): void => {
-    if (message === "[DONE]") return;
+    if (message === "[DONE]") {
+      sseConnectionActive = false;
+      return;
+    }
     let data: undefined | { message?: { content?: { parts?: string[] } } };
     try {
       data = JSON.parse(message);
@@ -63,23 +78,18 @@ export async function askChatGPT(
       return;
     }
     const text: string | undefined = data?.message?.content?.parts?.[0];
-    if (text) sendToReactComponent(text);
+    if (text && isVideoIdActive(videoId)) streamingCallback(text);
   };
 
   const extensionSettings: OptionsHash = await getOptionsHash();
   const { gpt_language, response_tokens } = extensionSettings;
 
-  const query = `You are an expert summarizer tasked with extracting only the most important details and condensing this YouTube transcript into a concise <=${response_tokens} ${gpt_language} tokens summary.
-  Please provide ONLY a focused and deterministic summary with a temperature of 0.1.
-  Please provide ONLY the <=${response_tokens} ${gpt_language} tokens summary in the response.
-  Consider or discard the video's metadata (${
-    youtubeVideoInfo.metaData
-  }) while summarizing the transcript.
-  Here is the transcript of a YouTube video that requires summarization within ${response_tokens} tokens: ${getActiveTranscriptPart(
-    youtubeVideoInfo
-  )}`;
+  const prompt = getPrompt(transcript, response_tokens, gpt_language, metadata, forcedTokenSuggestion);
 
-  return await subscribeToSSE(
+  await waitForSSEConnection();
+
+  sseConnectionActive = true;
+  await subscribeToSSE(
     CONVO_ENDPOINT,
     {
       method: "POST",
@@ -93,7 +103,7 @@ export async function askChatGPT(
             role: "user",
             content: {
               content_type: "text",
-              parts: [query],
+              parts: [prompt],
             },
           },
         ],
@@ -103,11 +113,15 @@ export async function askChatGPT(
       }),
     },
     onMessage
-  ).catch((err: Error): void => {
-    if (err.name === "AbortError") return;
+  ).catch((err: Error | SSEError): void => {
+    sseConnectionActive=false;
     console.error(err);
-    handleServerError();
-    // sendToReactComponent(err.toString());
+    const sseErr = err as SSEError;
+    switch(sseErr?.status) {
+      case 401: return handleInvalidCredsExt();
+      case 429: return handleServerError();
+      default: return handleServerError();
+    }
   });
 }
 
