@@ -12,7 +12,7 @@ import { activeVideoIds } from "./utils/activeVideoId";
 import summarize from "./utils/summarize";
 import { setupOptions } from "../options/options/OptionsHash";
 
-(async () => await setupOptions());
+async () => await setupOptions();
 
 Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
   port.onMessage.addListener(
@@ -29,10 +29,13 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
           port.postMessage(noTranscriptMsg);
           break;
         case MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID:
-          const activeVideoIdMsg = message as PingBgScriptActiveYoutubeVideoIdMessage;
+          const activeVideoIdMsg =
+            message as PingBgScriptActiveYoutubeVideoIdMessage;
           const { youtubeVideoId, tabUUID } = activeVideoIdMsg;
           activeVideoIds.set(tabUUID, youtubeVideoId);
-          port.postMessage({ type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT })
+          port.postMessage({
+            type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT,
+          });
           break;
         default:
           console.warn(`Unsupported message type: ${message.type}`);
@@ -43,13 +46,13 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
 
   chrome.storage.onChanged.addListener((changes, area) => {
     // If summarization method setting is changed
-    if (area === 'sync' && changes.summarization_method) {
+    if (area === "sync" && changes.summarization_method) {
       const newValue = changes.summarization_method.newValue;
-      port.postMessage({ 
+      port.postMessage({
         type: MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING,
-        settingKey: 'summarization_method',
+        settingKey: "summarization_method",
         data: newValue,
-      })
+      });
     }
   });
 });

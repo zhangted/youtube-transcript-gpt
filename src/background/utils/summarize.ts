@@ -1,7 +1,10 @@
 import Browser from "webextension-polyfill";
 import { YoutubeVideoInfo } from "../../content/YoutubeVideoInfo";
 import { getOptionsHash, OptionsHash } from "../../options/options/OptionsHash";
-import { shouldSummAggr, shouldSummPagebyPage } from "../../options/options/SUMMARIZATION_METHOD";
+import {
+  shouldSummAggr,
+  shouldSummPagebyPage,
+} from "../../options/options/SUMMARIZATION_METHOD";
 import askChatGPT from "../clients/openai";
 import {
   MESSAGE_TYPES,
@@ -15,10 +18,13 @@ export default async function summarize(
 ) {
   let controller: AbortController = new AbortController();
 
-  const { tabUUID, data: youtubeVideoInfo }: { tabUUID: string, data: YoutubeVideoInfo} = message;
+  const {
+    tabUUID,
+    data: youtubeVideoInfo,
+  }: { tabUUID: string; data: YoutubeVideoInfo } = message;
   const { youtubeVideoId }: { youtubeVideoId: string } = youtubeVideoInfo;
 
-  if(!isVideoIdActive(tabUUID, youtubeVideoId)) return;
+  if (!isVideoIdActive(tabUUID, youtubeVideoId)) return;
 
   const sendToReactComponent = (gptResponse: string): void =>
     port.postMessage({
@@ -34,7 +40,10 @@ export default async function summarize(
   const extensionSettings: OptionsHash = await getOptionsHash();
   const { summarization_method, response_tokens } = extensionSettings;
 
-  if(youtubeVideoInfo.transcriptParts.length === 1 || shouldSummPagebyPage(summarization_method)) {
+  if (
+    youtubeVideoInfo.transcriptParts.length === 1 ||
+    shouldSummPagebyPage(summarization_method)
+  ) {
     await askChatGPT(
       tabUUID,
       youtubeVideoId,
@@ -44,23 +53,23 @@ export default async function summarize(
       sendToReactComponent,
       handleInvalidCreds,
       handleServerError
-    ).catch(()=>{})
-  } else if(shouldSummAggr(summarization_method)) {
-    let aggrSummary: string = '';
-    for(let i = 0; i < youtubeVideoInfo.transcriptParts.length; i++) {
-      if(!isVideoIdActive(tabUUID, youtubeVideoId)) break;
+    ).catch(() => {});
+  } else if (shouldSummAggr(summarization_method)) {
+    let aggrSummary: string = "";
+    for (let i = 0; i < youtubeVideoInfo.transcriptParts.length; i++) {
+      if (!isVideoIdActive(tabUUID, youtubeVideoId)) break;
       const transcriptPart = youtubeVideoInfo.transcriptParts[i];
       let curAggr = aggrSummary;
       let missedPages = [];
-      let page = i+1;
+      let page = i + 1;
       let isLastPage = page === youtubeVideoInfo.transcriptParts.length;
 
       port.postMessage({
         type: MESSAGE_TYPES.LONG_TRANSCRIPT_SUMMARIZATION_STATUS,
         page,
         youtubeVideoId,
-      })
-      console.log(`summarizing ${youtubeVideoId} pg`, page)
+      });
+      console.log(`summarizing ${youtubeVideoId} pg`, page);
 
       await askChatGPT(
         tabUUID,
@@ -69,16 +78,18 @@ export default async function summarize(
         // combine any prev page gpt summary + current transcript part
         youtubeVideoInfo.metaData,
         controller.signal,
-        isLastPage ? sendToReactComponent : (gptResponse) => aggrSummary = gptResponse,
+        isLastPage
+          ? sendToReactComponent
+          : (gptResponse) => (aggrSummary = gptResponse),
         // update aggregated summary to be response from gpt containing summ of prev + cur
         handleInvalidCreds,
         handleServerError,
-        isLastPage ? response_tokens : 0,
-      ).catch(async(err) => {
+        isLastPage ? response_tokens : 0
+      ).catch(async (err) => {
         missedPages.push(page);
-        aggrSummary = curAggr // set aggr summary to the prev summ
+        aggrSummary = curAggr; // set aggr summary to the prev summ
         i--;
-      })
+      });
     }
   }
 

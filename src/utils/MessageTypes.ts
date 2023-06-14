@@ -9,7 +9,8 @@ export const MESSAGE_TYPES = {
   LONG_TRANSCRIPT_SUMMARIZATION_STATUS: "LONG_TRANSCRIPT_SUMMARIZATION_STATUS",
   SERVER_SENT_EVENTS_END: "SERVER_SENT_EVENTS_END",
   SERVER_ERROR_RESPONSE: "SERVER_ERROR_RESPONSE",
-  PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID: "PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID",
+  PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID:
+    "PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID",
   PING_CONTENT_SCRIPT_FOR_TRANSCRIPT: "PING_CONTENT_SCRIPT_FOR_TRANSCRIPT",
   CHANGED_CHROME_EXT_SETTING: "CHANGED_CHROME_EXT_SETTING",
 };
@@ -51,12 +52,12 @@ export interface ServerErrorResponseMessage {
 export interface PingBgScriptActiveYoutubeVideoIdMessage {
   // tell bg script about current youtube video id on a tab
   type: typeof MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID;
-  youtubeVideoId: string,
-  tabUUID: string,
+  youtubeVideoId: string;
+  tabUUID: string;
 }
 
 export interface PingContentScriptForTranscriptMessage {
-  type: typeof MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT
+  type: typeof MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT;
 }
 
 export interface ChangedChromeExtSettingMessage {

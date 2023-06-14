@@ -57,13 +57,13 @@ export default async function askChatGPT(
   streamingCallback = (gptResponse: string): void => {},
   handleInvalidCreds = (): void => {},
   handleServerError = (): void => {},
-  forcedTokenSuggestion: number = 200,
+  forcedTokenSuggestion: number = 200
 ) {
   const token: string | undefined = await setupAccessToken();
   const handleInvalidCredsExt = () => {
     expirymap.clear();
     handleInvalidCreds();
-  }
+  };
   if (token === undefined) return handleInvalidCredsExt();
 
   const onMessage = (message: string): void => {
@@ -71,25 +71,37 @@ export default async function askChatGPT(
       sseConnectionActive = false;
       return;
     }
-    let data: undefined | { message?: { 
-      author?: { role?: string }
-      content?: { parts?: string[] } } };
+    let data:
+      | undefined
+      | {
+          message?: {
+            author?: { role?: string };
+            content?: { parts?: string[] };
+          };
+        };
     try {
       data = JSON.parse(message);
     } catch (err) {
       console.error(err);
       return;
     }
-    const fromAssistant = data?.message?.author?.role === 'assistant';
+    const fromAssistant = data?.message?.author?.role === "assistant";
     const text: string | undefined = data?.message?.content?.parts?.[0];
     // console.log(text, data)
-    if (text && fromAssistant && isVideoIdActive(tabUUID, videoId)) streamingCallback(text);
+    if (text && fromAssistant && isVideoIdActive(tabUUID, videoId))
+      streamingCallback(text);
   };
 
   const extensionSettings: OptionsHash = await getOptionsHash();
   const { gpt_language, response_tokens } = extensionSettings;
 
-  const prompt = getPrompt(transcript, response_tokens, gpt_language, metadata, forcedTokenSuggestion);
+  const prompt = getPrompt(
+    transcript,
+    response_tokens,
+    gpt_language,
+    metadata,
+    forcedTokenSuggestion
+  );
 
   // await logModels(token);
   await waitForSSEConnection();
@@ -120,13 +132,16 @@ export default async function askChatGPT(
     },
     onMessage
   ).catch((err: Error | SSEError): void => {
-    sseConnectionActive=false;
+    sseConnectionActive = false;
     console.error(err);
     const sseErr = err as SSEError;
-    switch(sseErr?.status) {
-      case 401: return handleInvalidCredsExt();
-      case 429: return handleServerError();
-      default: return handleServerError();
+    switch (sseErr?.status) {
+      case 401:
+        return handleInvalidCredsExt();
+      case 429:
+        return handleServerError();
+      default:
+        return handleServerError();
     }
   });
 }

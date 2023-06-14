@@ -1,36 +1,43 @@
-import { h, render } from 'preact';
+import { h, render } from "preact";
 import { v4 as uuidv4 } from "uuid";
-import SummaryBox from './SummaryBox';
+import SummaryBox from "./SummaryBox";
 
-console.info('the content script is running');
+console.info("the content script is running");
 
 let tabUUID: string = uuidv4();
 let prevUrl: string | null = null;
+let summaryBox: HTMLElement | null = null;
 
-function createPixel() {
-  let pixel = document.createElement('div');
-  pixel.style.width = "1px";
-  pixel.style.height = "1px";
-  return pixel;
+function waitForElm(selector: string) {
+  return new Promise((resolve) => {
+    if (document.querySelector(selector)) {
+      return resolve(document.querySelector(selector));
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      if (document.querySelector(selector)) {
+        resolve(document.querySelector(selector));
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  });
 }
 
 function updateSummaryWrapper() {
-  const injectPts = document.querySelectorAll('#secondary');
-  for (const injectPt of injectPts) {
-    injectPt.querySelector('#summary-wrapper')?.remove();
-
-    let pixel = createPixel();
-    injectPt.prepend(pixel)
-
-    if (pixel.offsetWidth > 0) {
-      const summaryWrapper = document.createElement('div');
-      summaryWrapper.id = 'summary-wrapper';
-      render(h(SummaryBox, { uuid: tabUUID }), summaryWrapper);
-      injectPt.prepend(summaryWrapper);
-    }
-
-    pixel.remove();
-  }
+  waitForElm("#secondary.style-scope.ytd-watch-flexy").then(() => {
+    summaryBox?.remove();
+    summaryBox = document.createElement("div");
+    summaryBox.id = "summary-wrapper";
+    render(h(SummaryBox, { uuid: tabUUID }), summaryBox);
+    document
+      .querySelector("#secondary.style-scope.ytd-watch-flexy")
+      ?.prepend(summaryBox);
+  });
 }
 
 function tryUpdateSummaryWrapper() {
@@ -40,16 +47,13 @@ function tryUpdateSummaryWrapper() {
   }
 }
 
-(new MutationObserver(([{ type, attributeName }]) => {
-  if(type === 'attributes' && attributeName === 'href') tryUpdateSummaryWrapper()
-})).observe(
-  document,
-  { subtree: true, attributes: true, attributeFilter: ['href'] }
-);
+new MutationObserver(([{ type, attributeName }]) => {
+  if (type === "attributes" && attributeName === "href")
+    tryUpdateSummaryWrapper();
+}).observe(document, {
+  subtree: true,
+  attributes: true,
+  attributeFilter: ["href"],
+});
 
-function waitForSecondary() {
-  document.getElementById('secondary') ? 
-    tryUpdateSummaryWrapper() : setTimeout(waitForSecondary, 100);
-}
-
-waitForSecondary();
+waitForElm("#secondary").then(tryUpdateSummaryWrapper);

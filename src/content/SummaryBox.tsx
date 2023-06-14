@@ -35,11 +35,11 @@ const getYoutubeVideoId = (
   return service === "youtube" && id ? id : "";
 };
 
-const sendTranscriptToBgScript = async(
+const sendTranscriptToBgScript = async (
   port: Browser.Runtime.Port,
   videoInfoInstance: YoutubeVideoInfo,
-  tabUUID: string,
-) => port.postMessage({...videoInfoInstance.getPostMessageObject(), tabUUID})
+  tabUUID: string
+) => port.postMessage({ ...videoInfoInstance.getPostMessageObject(), tabUUID });
 
 const getMainTextToInsert = (message: MessageFromBgScript): string => {
   let youtubeVideoId: string, gptResponse: string, page: number;
@@ -50,7 +50,8 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
       if (getYoutubeVideoId() === youtubeVideoId) return gptResponse;
       return "";
     case MESSAGE_TYPES.LONG_TRANSCRIPT_SUMMARIZATION_STATUS:
-      ({ page, youtubeVideoId } = message as LongTranscriptSummarizationStatusMessage)
+      ({ page, youtubeVideoId } =
+        message as LongTranscriptSummarizationStatusMessage);
       if (getYoutubeVideoId() === youtubeVideoId) return `Summarizing ${page}`;
       return "";
     case MESSAGE_TYPES.NO_ACCESS_TOKEN:
@@ -62,7 +63,7 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
   }
 };
 
-export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
+export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const tabUUID = useRef<string>(uuid);
   const [port] = useState<Browser.Runtime.Port>(Browser.runtime.connect());
   const [text, setText] = useState<string>(getOnMountText());
@@ -71,9 +72,11 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
   );
   const [showRefresh, setShowRefresh] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(calcIsDarkMode());
-  const [summMethod, setSummMethod] = useState<string>('');
+  const [summMethod, setSummMethod] = useState<string>("");
 
-  const [OptionsComponent, setOptionsComponent] = useState<JSX.Element>(<div />);
+  const [OptionsComponent, setOptionsComponent] = useState<JSX.Element>(
+    <div />
+  );
 
   const showRefreshLater = () => {
     setShowRefresh(false);
@@ -84,11 +87,15 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
     useState<Function>(() => () => null);
 
   useEffect(() => {
-    getOptionsHash()
-      .then(options => setSummMethod(options.summarization_method))
-  },[])
+    getOptionsHash().then((options) =>
+      setSummMethod(options.summarization_method)
+    );
+  }, []);
 
-  const summPageByPage = useCallback(() => shouldSummPagebyPage(summMethod), [summMethod])
+  const summPageByPage = useCallback(
+    () => shouldSummPagebyPage(summMethod),
+    [summMethod]
+  );
 
   const setYoutubeVideoInfoAndSendToBgScript = useCallback(
     (youtubeVideoInfo: YoutubeVideoInfo): void => {
@@ -103,29 +110,35 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
     []
   );
 
-  const handleChangedChromeSetting = useCallback(async (message: MessageFromBgScript) => {
-    switch (message.type) {
-      case MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING:
-        const msg = message as ChangedChromeExtSettingMessage
-        if(msg.settingKey === 'summarization_method') setSummMethod(msg.data)
-    }
-  }, []);
+  const handleChangedChromeSetting = useCallback(
+    async (message: MessageFromBgScript) => {
+      switch (message.type) {
+        case MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING:
+          const msg = message as ChangedChromeExtSettingMessage;
+          if (msg.settingKey === "summarization_method")
+            setSummMethod(msg.data);
+      }
+    },
+    []
+  );
 
   const listenForBgScriptResponse = useCallback(
     (message: MessageFromBgScript) => {
       if (message.type === MESSAGE_TYPES.SERVER_SENT_EVENTS_END)
         return setShowRefresh(true);
       else if (message.type === MESSAGE_TYPES.SERVER_ERROR_RESPONSE) {
-        setText('loading')
+        setText("loading");
         return setTimeout(() => {
-          const button = document.querySelector('button[title="Refresh Summary"') as HTMLButtonElement
+          const button = document.querySelector(
+            'button[title="Refresh Summary"'
+          ) as HTMLButtonElement;
           button?.click();
-        }, 1200)
-      }
-      else if(message.type === MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING) {
+        }, 1200);
+      } else if (message.type === MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING) {
         return handleChangedChromeSetting(message);
-      }
-      else if(message.type === MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT) {
+      } else if (
+        message.type === MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT
+      ) {
         return getTranscriptAndSendToBgScript();
       }
       setText(getMainTextToInsert(message));
@@ -160,7 +173,7 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
       type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
       youtubeVideoId: getYoutubeVideoId(),
       tabUUID: tabUUID.current,
-    })
+    });
 
     return () => {
       port.onMessage.removeListener(listenForBgScriptResponse);
@@ -222,27 +235,27 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
       <button
         title="Settings"
         onClick={async (e) => {
-          await import('../options/Options')
-          .then(({Options}) => Options)
-          .then(Options=>
-            <Wrapper
-              elements={[
-                <Options
-                  exitButton={
-                    <button
-                      onClick={async (e) => {
-                        scrollToTop();
-                        await getTranscriptAndSendToBgScript();
-                      }}
-                    >
-                      Back to summary
-                    </button>
-                  }
-                />,
-              ]}
-            />
-          )
-          .then(setOptionsComponent);
+          await import("../options/Options")
+            .then(({ Options }) => Options)
+            .then((Options) => (
+              <Wrapper
+                elements={[
+                  <Options
+                    exitButton={
+                      <button
+                        onClick={async (e) => {
+                          scrollToTop();
+                          await getTranscriptAndSendToBgScript();
+                        }}
+                      >
+                        Back to summary
+                      </button>
+                    }
+                  />,
+                ]}
+              />
+            ))
+            .then(setOptionsComponent);
           text !== "options"
             ? setText("options")
             : await getTranscriptAndSendToBgScript();
@@ -273,8 +286,13 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
             <div style={{ fontWeight: "600", margin: "10px 0" }}>
               {summPageByPage() && youtubeVideoInfo.getPageIndicatorStr()}
             </div>
-            {summPageByPage() && youtubeVideoInfo.hasPrevPage() && <PrevPageButton />}&nbsp;
-            {summPageByPage() && youtubeVideoInfo.hasNextPage() && <NextPageButton />}
+            {summPageByPage() && youtubeVideoInfo.hasPrevPage() && (
+              <PrevPageButton />
+            )}
+            &nbsp;
+            {summPageByPage() && youtubeVideoInfo.hasNextPage() && (
+              <NextPageButton />
+            )}
             <div style={{ float: "right" }}>
               {youtubeVideoInfo.hasTranscript() && <RefreshButton />}
               &nbsp;
@@ -301,8 +319,14 @@ export default function SummaryBox({ uuid } : { uuid: string }): JSX.Element {
   if (text === "loading")
     return <Wrapper elements={["Summarizing... ", <Spinner />]} />;
   else if (text.match(/^Summarizing (\d+)$/))
-    return <Wrapper elements={[`${text}/${youtubeVideoInfo.transcriptParts.length}`, <Spinner />]} />
-  else if (text === "options")
-    return OptionsComponent;
+    return (
+      <Wrapper
+        elements={[
+          `${text}/${youtubeVideoInfo.transcriptParts.length}`,
+          <Spinner />,
+        ]}
+      />
+    );
+  else if (text === "options") return OptionsComponent;
   return <Wrapper elements={text} />;
 }

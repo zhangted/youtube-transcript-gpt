@@ -1,8 +1,19 @@
 import { useState, useEffect, useCallback } from "preact/hooks";
 import { SUMMARIZATION_METHOD } from "./options/SUMMARIZATION_METHOD";
 import { GPT_LANGUAGE } from "./options/GPT_LANGUAGE";
-import { MIN_RESPONSE_TOKENS, MAX_RESPONSE_TOKENS } from "./options/RESPONSE_TOKENS";
-import { optionsHashDefaults, OptionsHash, OptionsHashKey, settingsKeys, getOptionsHash, setOptionsHash, setupOptions} from "./options/OptionsHash";
+import {
+  MIN_RESPONSE_TOKENS,
+  MAX_RESPONSE_TOKENS,
+} from "./options/RESPONSE_TOKENS";
+import {
+  optionsHashDefaults,
+  OptionsHash,
+  OptionsHashKey,
+  settingsKeys,
+  getOptionsHash,
+  setOptionsHash,
+  setupOptions,
+} from "./options/OptionsHash";
 
 export function Options({
   exitButton = undefined,
@@ -17,12 +28,11 @@ export function Options({
   const [status, setStatus] = useState<JSX.Element>();
 
   const getSetCurSettings = () =>
-    setupOptions()
-      .then((fetchedSettings) => {
-        const changed =
-          JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings);
-        if (changed) setCurSettings(fetchedSettings);
-      });
+    setupOptions().then((fetchedSettings) => {
+      const changed =
+        JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings);
+      if (changed) setCurSettings(fetchedSettings);
+    });
 
   useEffect(() => {
     getSetCurSettings();
@@ -55,7 +65,9 @@ export function Options({
             curSettings.response_tokens <= MAX_RESPONSE_TOKENS
               ? curSettings.response_tokens
               : optionsHashDefaults.response_tokens,
-          summarization_method: SUMMARIZATION_METHOD.includes(curSettings.summarization_method)
+          summarization_method: SUMMARIZATION_METHOD.includes(
+            curSettings.summarization_method
+          )
             ? curSettings.summarization_method
             : optionsHashDefaults.summarization_method,
         };
@@ -77,65 +89,78 @@ export function Options({
     setSyncs(syncs + 1);
   };
 
-  const SelectOptionSettingElement = useCallback((
-    options: string[], 
-    settingKey: OptionsHashKey,
-    headingText: string,
-  ): JSX.Element => 
-    <div style={{ margin: "10px" }}>
-      <div>
-        <label for="language">{headingText}</label>
+  const SelectOptionSettingElement = useCallback(
+    (
+      options: string[],
+      settingKey: OptionsHashKey,
+      headingText: string
+    ): JSX.Element => (
+      <div style={{ margin: "10px" }}>
+        <div>
+          <label for="language">{headingText}</label>
+        </div>
+        <select
+          name={settingKey as string}
+          id={settingKey as string}
+          value={curSettings[settingKey]}
+          onChange={async (e: Event) => {
+            const ele = e.target as HTMLOptionElement;
+            const obj = { ...curSettings };
+            obj[settingKey] = ele.value;
+            setCurSettings(obj);
+          }}
+        >
+          {options.map((opt) => (
+            <option value={opt}>{opt}</option>
+          ))}
+        </select>
       </div>
-      <select
-        name={settingKey as string}
-        id={settingKey as string}
-        value={curSettings[settingKey]}
-        onChange={async (e: Event) => {
-          const ele = e.target as HTMLOptionElement;
-          const obj = { ...curSettings }
-          obj[settingKey] = ele.value
-          setCurSettings(obj);
-        }}
-      >
-        {options.map((opt) => (
-          <option value={opt}>{opt}</option>
-        ))}
-      </select>
-    </div>
-  , [curSettings])
+    ),
+    [curSettings]
+  );
 
   return (
     <div>
       <h2>Youtube Video Summary Options</h2>
 
-      {SelectOptionSettingElement(GPT_LANGUAGE, 'gpt_language', 'Summary language:')}
-      {SelectOptionSettingElement(SUMMARIZATION_METHOD, 'summarization_method', 'How to summarize long videos:')}
+      {SelectOptionSettingElement(
+        GPT_LANGUAGE,
+        "gpt_language",
+        "Summary language:"
+      )}
+      {SelectOptionSettingElement(
+        SUMMARIZATION_METHOD,
+        "summarization_method",
+        "How to summarize long videos:"
+      )}
 
-      {<div style={{ margin: "10px" }}>
-        <div>
-          <label for="response_tokens">Suggested Summary Length: </label>
+      {
+        <div style={{ margin: "10px" }}>
+          <div>
+            <label for="response_tokens">Suggested Summary Length: </label>
+          </div>
+          <input
+            onMouseUp={async (e: Event) => {
+              const ele = e.target as HTMLOptionElement;
+              setCurSettings({
+                ...curSettings,
+                response_tokens:
+                  Number(ele.value) || optionsHashDefaults.response_tokens,
+              });
+            }}
+            value={curSettings.response_tokens}
+            type="range"
+            id="response_tokens"
+            name="response_tokens"
+            min={MIN_RESPONSE_TOKENS}
+            max={MAX_RESPONSE_TOKENS}
+          />
+          {curSettings.response_tokens} tokens
+          <div>
+            (~{Math.floor((curSettings.response_tokens / 100) * 75)} words)
+          </div>
         </div>
-        <input
-          onMouseUp={async (e: Event) => {
-            const ele = e.target as HTMLOptionElement;
-            setCurSettings({
-              ...curSettings,
-              response_tokens:
-                Number(ele.value) || optionsHashDefaults.response_tokens,
-            });
-          }}
-          value={curSettings.response_tokens}
-          type="range"
-          id="response_tokens"
-          name="response_tokens"
-          min={MIN_RESPONSE_TOKENS}
-          max={MAX_RESPONSE_TOKENS}
-        />
-        {curSettings.response_tokens} tokens
-        <div>
-          (~{Math.floor((curSettings.response_tokens / 100) * 75)} words)
-        </div>
-      </div>}
+      }
 
       <div style={{ margin: "10px" }}>
         {!autoSaveOnChange && (
