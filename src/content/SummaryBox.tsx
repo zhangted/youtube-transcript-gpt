@@ -1,7 +1,10 @@
 import "../assets/SummaryBox.css";
 import getVideoId from "get-video-id";
 import Browser from "webextension-polyfill";
-import { getYoutubeVideoInfo, YoutubeVideoInfo } from "../utils/YoutubeVideoInfo";
+import {
+  getYoutubeVideoInfo,
+  YoutubeVideoInfo,
+} from "../utils/YoutubeVideoInfo";
 import { useRef, useState, useEffect, useCallback } from "preact/hooks";
 import { getOptionsHash } from "../options/options/OptionsHash";
 import { shouldSummPagebyPage } from "../options/options/SUMMARIZATION_METHOD";
@@ -76,7 +79,7 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(calcIsDarkMode());
   const [summMethod, setSummMethod] = useState<string>("");
 
-  const [OptionsComponent, setOptionsComponent] = useState<JSX.Element|null>(
+  const [OptionsComponent, setOptionsComponent] = useState<JSX.Element | null>(
     null
   );
 
@@ -122,7 +125,7 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const listenForBgScriptResponse = useCallback(
     async (message: MessageFromBgScript) => {
       if (message.type === MESSAGE_TYPES.SERVER_SENT_EVENTS_END)
-        return console.log('end');
+        return console.log("end");
       else if (message.type === MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING) {
         return handleChangedChromeSetting(message);
       } else if (
@@ -168,7 +171,7 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     (): JSX.Element =>
       youtubeVideoInfo.hasPrevPage() ? (
         <button
-          onClick={async(e) => {
+          onClick={async (e) => {
             youtubeVideoInfo.prevPage();
             await getTranscriptAndSendToBgScript();
           }}
@@ -185,7 +188,7 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     (): JSX.Element =>
       youtubeVideoInfo.hasNextPage() ? (
         <button
-          onClick={async(e) => {
+          onClick={async (e) => {
             youtubeVideoInfo.nextPage();
             await getTranscriptAndSendToBgScript();
           }}
@@ -203,9 +206,7 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
       youtubeVideoInfo.hasTranscript() ? (
         <button
           title="Refresh Summary"
-          onClick={async(e) =>
-            await getTranscriptAndSendToBgScript()
-          }
+          onClick={async (e) => await getTranscriptAndSendToBgScript()}
         >
           <ArrowClockwise />
         </button>
@@ -237,9 +238,10 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     (): JSX.Element => (
       <button
         title="Settings"
-        onClick={async (e) => await import("../options/Options")
+        onClick={async (e) =>
+          await import("../options/Options")
             .then(({ Options }) => Options)
-            .then(async(Options) => (
+            .then(async (Options) => (
               <Options
                 optionsHash={await getOptionsHash()}
                 customHeaderText="Summary Options"
@@ -252,7 +254,9 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
                   >
                     Back to summary
                   </button>
-                } /> ))
+                }
+              />
+            ))
             .then(setOptionsComponent)
             .then(scrollToTop)
         }
@@ -290,16 +294,16 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const ControlButtons = useCallback(
     (): JSX.Element => (
       <span>
+        <ToggleThemeButton />
+        &nbsp;
+        <OpenOptionsButton />
+        &nbsp;
         {(text === "loading" || text.match(/^Summarizing (\d+)$/)) &&
         youtubeVideoInfo.hasTranscript() ? (
           <StopButton />
         ) : (
           <RefreshButton />
         )}
-        &nbsp;
-        <ToggleThemeButton />
-        &nbsp;
-        <OpenOptionsButton />
         <div style={{ fontWeight: "600", margin: "15px 0 10px 0" }}>
           {text !== "loading" &&
             !text.match(/^Summarizing (\d+)$/) &&
@@ -315,18 +319,19 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const Wrapper = useCallback(
     ({ elements }: { elements: (JSX.Element | string)[] | string }) => (
       <div style={wrapperCssAttrs}>
-        {!OptionsComponent && <div style={{ height: "80px", margin: "10px 0" }}>
-          {summPageByPage() && <PageByPageButtons />}
-          <ControlButtons />
-        </div>}
+        {!OptionsComponent && (
+          <div style={{ height: "80px", margin: "10px 0" }}>
+            {summPageByPage() && <PageByPageButtons />}
+            <ControlButtons />
+          </div>
+        )}
         {elements}
       </div>
     ),
     [wrapperCssAttrs, summMethod, isDarkMode, text, OptionsComponent]
   );
 
-  if(OptionsComponent)
-    return <Wrapper elements={[OptionsComponent]} />
+  if (OptionsComponent) return <Wrapper elements={[OptionsComponent]} />;
   else if (text === "loading")
     return <Wrapper elements={["Summarizing... ", <Spinner />]} />;
   else if (text.match(/^Summarizing (\d+)$/))

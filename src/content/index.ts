@@ -43,9 +43,11 @@ function updateSummaryWrapper() {
 function tryUpdateSummaryWrapper() {
   if (prevUrl !== window.location.href) {
     prevUrl = window.location.href;
-    setTimeout(updateSummaryWrapper, 500);
+    updateSummaryWrapper();
   }
 }
+
+window.addEventListener("click", () => tryUpdateSummaryWrapper);
 
 new MutationObserver(([{ type, attributeName }]) => {
   if (type === "attributes" && attributeName === "href")

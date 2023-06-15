@@ -72,18 +72,20 @@ function parseTranscriptArrToString(
   return transcriptAsObjectArr.map(({ text }) => text).join(" ");
 }
 
-async function fetchRawTranscript(youtubeVideoId: string): Promise<transcriptPart[]> {
+async function fetchRawTranscript(
+  youtubeVideoId: string
+): Promise<transcriptPart[]> {
   try {
     return await getTranscript(youtubeVideoId);
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     try {
       return await Api.transcript
-      .GET({ query: { videoId: youtubeVideoId } })
-      .Ok(({ body }: { body: object }): object => body)
-      .then(({ body }: { body: object }): object => body)
-      .then(({ videoId }: { videoId: object[] }): object[] => videoId)
-    } catch(e) {
+        .GET({ query: { videoId: youtubeVideoId } })
+        .Ok(({ body }: { body: object }): object => body)
+        .then(({ body }: { body: object }): object => body)
+        .then(({ videoId }: { videoId: object[] }): object[] => videoId);
+    } catch (e) {
       console.error(e);
       return [];
     }
@@ -91,10 +93,12 @@ async function fetchRawTranscript(youtubeVideoId: string): Promise<transcriptPar
 }
 
 async function getTranscriptParts(youtubeVideoId: string): Promise<string[]> {
-  let transcriptParts: transcriptPart[] = await fetchRawTranscript(youtubeVideoId);
-  if(transcriptParts.length===0) return [];
-  let str = parseTranscriptArrToString(transcriptParts)
-  return splitTextIntoSizeableTokenArrays(str)
+  let transcriptParts: transcriptPart[] = await fetchRawTranscript(
+    youtubeVideoId
+  );
+  if (transcriptParts.length === 0) return [];
+  let str = parseTranscriptArrToString(transcriptParts);
+  return splitTextIntoSizeableTokenArrays(str);
 }
 
 async function getMetadata(youtubeVideoId: string): Promise<string> {
@@ -108,7 +112,7 @@ async function getMetadata(youtubeVideoId: string): Promise<string> {
     .Ok(({ body }: { body: object }): object => body)
     .then(({ body }: { body: object }): object => body)
     .then(JSON.stringify)
-    .catch(() => '')
+    .catch(() => "");
 }
 
 export async function getYoutubeVideoInfo(

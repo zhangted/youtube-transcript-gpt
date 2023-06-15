@@ -22,10 +22,9 @@ export function Options({
 }: {
   exitButton?: JSX.Element | undefined;
   customHeaderText?: string | undefined;
-  optionsHash: OptionsHash
+  optionsHash: OptionsHash;
 }): JSX.Element {
-  const [curSettings, setCurSettings] =
-    useState<OptionsHash>(optionsHash);
+  const [curSettings, setCurSettings] = useState<OptionsHash>(optionsHash);
   const [syncs, setSyncs] = useState<number>(0);
   const [status, setStatus] = useState<JSX.Element>();
 
@@ -112,7 +111,7 @@ export function Options({
 
   return (
     <div>
-      <h2>{customHeaderText ?? 'Youtube Video Summary Options'}</h2>
+      <h2>{customHeaderText ?? "Youtube Video Summary Options"}</h2>
 
       {SelectOptionSettingElement(
         GPT_LANGUAGE,
@@ -154,13 +153,17 @@ export function Options({
       }
 
       <div style={{ margin: "10px" }}>
-        {!exitButton && <button onClick={async () => await saveOptions()}>
+        {!exitButton && (
+          <button onClick={async () => await saveOptions()}>
             <b>Save</b>
-          </button>}
+          </button>
+        )}
         &nbsp;&nbsp;
         <button onClick={resetOptions}>Reset</button>
         &nbsp;&nbsp;
-        {exitButton && <span onClick={async () => await saveOptions()}>{exitButton}</span>}
+        {exitButton && (
+          <span onClick={async () => await saveOptions()}>{exitButton}</span>
+        )}
         <div style={{ height: "15px", margin: "4px 0 0 0" }}>{status}</div>
       </div>
     </div>
