@@ -1,7 +1,7 @@
 import "../assets/SummaryBox.css";
 import getVideoId from "get-video-id";
 import Browser from "webextension-polyfill";
-import { getYoutubeVideoInfo, YoutubeVideoInfo } from "./YoutubeVideoInfo";
+import { getYoutubeVideoInfo, YoutubeVideoInfo } from "../utils/YoutubeVideoInfo";
 import { useRef, useState, useEffect, useCallback } from "preact/hooks";
 import { getOptionsHash } from "../options/options/OptionsHash";
 import { shouldSummPagebyPage } from "../options/options/SUMMARIZATION_METHOD";
@@ -20,6 +20,7 @@ import {
   Spinner,
   SunIcon,
   CogIcon,
+  StopIcon,
 } from "./icons";
 
 const getOnMountText = (): string =>
@@ -54,6 +55,8 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
         message as LongTranscriptSummarizationStatusMessage);
       if (getYoutubeVideoId() === youtubeVideoId) return `Summarizing ${page}`;
       return "";
+    case MESSAGE_TYPES.PING_CONTENT_SCRIPT_REQ_ABORTED:
+      return "Stopped summarization";
     case MESSAGE_TYPES.NO_ACCESS_TOKEN:
       return "Please login to OpenAI to access ChatGPT";
     case MESSAGE_TYPES.NO_TRANSCRIPT:
@@ -70,21 +73,12 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const [youtubeVideoInfo, setYoutubeVideoInfo] = useState<YoutubeVideoInfo>(
     new YoutubeVideoInfo()
   );
-  const [showRefresh, setShowRefresh] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(calcIsDarkMode());
   const [summMethod, setSummMethod] = useState<string>("");
 
-  const [OptionsComponent, setOptionsComponent] = useState<JSX.Element>(
-    <div />
+  const [OptionsComponent, setOptionsComponent] = useState<JSX.Element|null>(
+    null
   );
-
-  const showRefreshLater = () => {
-    setShowRefresh(false);
-    const id = setTimeout(() => setShowRefresh(true), 10000);
-    return () => clearTimeout(id);
-  };
-  const [cancelShowRefreshLater, setCancelShowRefreshLater] =
-    useState<Function>(() => () => null);
 
   useEffect(() => {
     getOptionsHash().then((options) =>
@@ -97,13 +91,16 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     [summMethod]
   );
 
+  const sendAbortReqBgScript = useCallback(
+    () => port.postMessage({ type: MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ }),
+    []
+  );
+
   const setYoutubeVideoInfoAndSendToBgScript = useCallback(
     (youtubeVideoInfo: YoutubeVideoInfo): void => {
       setYoutubeVideoInfo(youtubeVideoInfo);
       if (getYoutubeVideoId()) {
         setText("loading");
-        cancelShowRefreshLater();
-        setCancelShowRefreshLater(showRefreshLater());
         sendTranscriptToBgScript(port, youtubeVideoInfo, tabUUID.current);
       }
     },
@@ -123,31 +120,17 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   );
 
   const listenForBgScriptResponse = useCallback(
-    (message: MessageFromBgScript) => {
+    async (message: MessageFromBgScript) => {
       if (message.type === MESSAGE_TYPES.SERVER_SENT_EVENTS_END)
-        return setShowRefresh(true);
-      else if (message.type === MESSAGE_TYPES.SERVER_ERROR_RESPONSE) {
-        setText("loading");
-        return setTimeout(() => {
-          const button = document.querySelector(
-            'button[title="Refresh Summary"'
-          ) as HTMLButtonElement;
-          button?.click();
-        }, 1200);
-      } else if (message.type === MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING) {
+        return console.log('end');
+      else if (message.type === MESSAGE_TYPES.CHANGED_CHROME_EXT_SETTING) {
         return handleChangedChromeSetting(message);
       } else if (
         message.type === MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT
       ) {
-        return getTranscriptAndSendToBgScript();
+        return await getTranscriptAndSendToBgScript();
       }
       setText(getMainTextToInsert(message));
-      if (
-        [MESSAGE_TYPES.NO_TRANSCRIPT, MESSAGE_TYPES.NO_ACCESS_TOKEN].includes(
-          message.type
-        )
-      )
-        setShowRefresh(true);
     },
     []
   );
@@ -161,7 +144,6 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
   const getTranscriptAndSendToBgScript =
     useCallback(async (): Promise<void> => {
       setText(getOnMountText());
-      setShowRefresh(false);
       setYoutubeVideoInfoAndSendToBgScript(
         await getVideoIdAndTranscriptObject()
       );
@@ -176,49 +158,70 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     });
 
     return () => {
+      sendAbortReqBgScript();
       port.onMessage.removeListener(listenForBgScriptResponse);
       port.disconnect();
     };
   }, []);
 
   const PrevPageButton = useCallback(
-    (): JSX.Element => (
-      <button
-        onClick={(e) => {
-          youtubeVideoInfo.prevPage();
-          setYoutubeVideoInfoAndSendToBgScript(youtubeVideoInfo);
-        }}
-      >
-        <ArrowLeftSquareIcon />
-      </button>
-    ),
+    (): JSX.Element =>
+      youtubeVideoInfo.hasPrevPage() ? (
+        <button
+          onClick={async(e) => {
+            youtubeVideoInfo.prevPage();
+            await getTranscriptAndSendToBgScript();
+          }}
+        >
+          <ArrowLeftSquareIcon />
+        </button>
+      ) : (
+        <span class="button-placeholder"></span>
+      ),
     [youtubeVideoInfo]
   );
 
   const NextPageButton = useCallback(
-    (): JSX.Element => (
-      <button
-        onClick={(e) => {
-          youtubeVideoInfo.nextPage();
-          setYoutubeVideoInfoAndSendToBgScript(youtubeVideoInfo);
-        }}
-      >
-        <ArrowRightSquareIcon />
-      </button>
-    ),
+    (): JSX.Element =>
+      youtubeVideoInfo.hasNextPage() ? (
+        <button
+          onClick={async(e) => {
+            youtubeVideoInfo.nextPage();
+            await getTranscriptAndSendToBgScript();
+          }}
+        >
+          <ArrowRightSquareIcon />
+        </button>
+      ) : (
+        <span class="button-placeholder"></span>
+      ),
     [youtubeVideoInfo]
   );
 
   const RefreshButton = useCallback(
+    (): JSX.Element =>
+      youtubeVideoInfo.hasTranscript() ? (
+        <button
+          title="Refresh Summary"
+          onClick={async(e) =>
+            await getTranscriptAndSendToBgScript()
+          }
+        >
+          <ArrowClockwise />
+        </button>
+      ) : (
+        <span />
+      ),
+    [youtubeVideoInfo]
+  );
+
+  const StopButton = useCallback(
     (): JSX.Element => (
-      <button
-        title="Refresh Summary"
-        onClick={(e) => setYoutubeVideoInfoAndSendToBgScript(youtubeVideoInfo)}
-      >
-        <ArrowClockwise />
+      <button title="Stop summarization" onClick={sendAbortReqBgScript}>
+        <StopIcon />
       </button>
     ),
-    [youtubeVideoInfo]
+    []
   );
 
   const ToggleThemeButton = useCallback(
@@ -234,33 +237,25 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     (): JSX.Element => (
       <button
         title="Settings"
-        onClick={async (e) => {
-          await import("../options/Options")
+        onClick={async (e) => await import("../options/Options")
             .then(({ Options }) => Options)
-            .then((Options) => (
-              <Wrapper
-                elements={[
-                  <Options
-                    exitButton={
-                      <button
-                        onClick={async (e) => {
-                          scrollToTop();
-                          await getTranscriptAndSendToBgScript();
-                        }}
-                      >
-                        Back to summary
-                      </button>
-                    }
-                  />,
-                ]}
-              />
-            ))
-            .then(setOptionsComponent);
-          text !== "options"
-            ? setText("options")
-            : await getTranscriptAndSendToBgScript();
-          scrollToTop();
-        }}
+            .then(async(Options) => (
+              <Options
+                optionsHash={await getOptionsHash()}
+                customHeaderText="Summary Options"
+                exitButton={
+                  <button
+                    onClick={() => {
+                      scrollToTop();
+                      setOptionsComponent(null);
+                    }}
+                  >
+                    Back to summary
+                  </button>
+                } /> ))
+            .then(setOptionsComponent)
+            .then(scrollToTop)
+        }
       >
         <CogIcon />
       </button>
@@ -273,50 +268,66 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     color: isDarkMode ? "white" : "black",
     fontSize: "18px",
     borderRadius: "8px",
-    padding: "19px",
+    padding: "14px 19px 24px 19px",
+    margin: "0 0 10px 0",
     minHeight: "100px",
   };
+
+  const PageByPageButtons = useCallback(
+    (): JSX.Element => (
+      <span style={{ float: "right" }}>
+        <PrevPageButton />
+        &nbsp;
+        <NextPageButton />
+        <div style={{ fontWeight: "600", margin: "10px 0" }}>
+          {youtubeVideoInfo.getPageIndicatorStr()}
+        </div>
+      </span>
+    ),
+    [youtubeVideoInfo]
+  );
+
+  const ControlButtons = useCallback(
+    (): JSX.Element => (
+      <span>
+        {(text === "loading" || text.match(/^Summarizing (\d+)$/)) &&
+        youtubeVideoInfo.hasTranscript() ? (
+          <StopButton />
+        ) : (
+          <RefreshButton />
+        )}
+        &nbsp;
+        <ToggleThemeButton />
+        &nbsp;
+        <OpenOptionsButton />
+        <div style={{ fontWeight: "600", margin: "15px 0 10px 0" }}>
+          {text !== "loading" &&
+            !text.match(/^Summarizing (\d+)$/) &&
+            text !== "options" &&
+            youtubeVideoInfo.hasTranscript() &&
+            "Summary"}
+        </div>
+      </span>
+    ),
+    [text, isDarkMode, youtubeVideoInfo]
+  );
 
   const Wrapper = useCallback(
     ({ elements }: { elements: (JSX.Element | string)[] | string }) => (
       <div style={wrapperCssAttrs}>
+        {!OptionsComponent && <div style={{ height: "80px", margin: "10px 0" }}>
+          {summPageByPage() && <PageByPageButtons />}
+          <ControlButtons />
+        </div>}
         {elements}
-        {showRefresh && (
-          <div style={{ margin: "5px 0" }}>
-            <div style={{ fontWeight: "600", margin: "10px 0" }}>
-              {summPageByPage() && youtubeVideoInfo.getPageIndicatorStr()}
-            </div>
-            {summPageByPage() && youtubeVideoInfo.hasPrevPage() && (
-              <PrevPageButton />
-            )}
-            &nbsp;
-            {summPageByPage() && youtubeVideoInfo.hasNextPage() && (
-              <NextPageButton />
-            )}
-            <div style={{ float: "right" }}>
-              {youtubeVideoInfo.hasTranscript() && <RefreshButton />}
-              &nbsp;
-              <ToggleThemeButton />
-              &nbsp;
-              <OpenOptionsButton />
-            </div>
-          </div>
-        )}
       </div>
     ),
-    [
-      wrapperCssAttrs,
-      text,
-      summMethod,
-      youtubeVideoInfo,
-      showRefresh,
-      ToggleThemeButton,
-      PrevPageButton,
-      NextPageButton,
-    ]
+    [wrapperCssAttrs, summMethod, isDarkMode, text, OptionsComponent]
   );
 
-  if (text === "loading")
+  if(OptionsComponent)
+    return <Wrapper elements={[OptionsComponent]} />
+  else if (text === "loading")
     return <Wrapper elements={["Summarizing... ", <Spinner />]} />;
   else if (text.match(/^Summarizing (\d+)$/))
     return (
@@ -327,6 +338,5 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
         ]}
       />
     );
-  else if (text === "options") return OptionsComponent;
   return <Wrapper elements={text} />;
 }

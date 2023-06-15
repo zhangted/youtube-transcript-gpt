@@ -1,5 +1,5 @@
 import Browser from "webextension-polyfill";
-import { YoutubeVideoInfo } from "../../content/YoutubeVideoInfo";
+import { YoutubeVideoInfo } from "../../utils/YoutubeVideoInfo";
 import { getOptionsHash, OptionsHash } from "../../options/options/OptionsHash";
 import {
   shouldSummAggr,
@@ -14,10 +14,10 @@ import { isVideoIdActive } from "./activeVideoId";
 
 export default async function summarize(
   port: Browser.Runtime.Port,
-  message: YoutubeVideoInfoMessage
+  message: YoutubeVideoInfoMessage,
+  controller: AbortController
 ) {
-  let controller: AbortController = new AbortController();
-
+  let abortAllReq: boolean = false;
   const {
     tabUUID,
     data: youtubeVideoInfo,
@@ -34,8 +34,8 @@ export default async function summarize(
     });
   const handleInvalidCreds = (): void =>
     port.postMessage({ type: MESSAGE_TYPES.NO_ACCESS_TOKEN });
-  const handleServerError = (): void =>
-    port.postMessage({ type: MESSAGE_TYPES.SERVER_ERROR_RESPONSE });
+  // const handleServerError = (): void =>
+  //   port.postMessage({ type: MESSAGE_TYPES.SERVER_ERROR_RESPONSE });
 
   const extensionSettings: OptionsHash = await getOptionsHash();
   const { summarization_method, response_tokens } = extensionSettings;
@@ -51,9 +51,11 @@ export default async function summarize(
       youtubeVideoInfo.metaData,
       controller.signal,
       sendToReactComponent,
-      handleInvalidCreds,
-      handleServerError
-    ).catch(() => {});
+      handleInvalidCreds
+      // handleServerError
+    ).catch((err) => {
+      if (err.name === "AbortError") abortAllReq = true;
+    });
   } else if (shouldSummAggr(summarization_method)) {
     let aggrSummary: string = "";
     for (let i = 0; i < youtubeVideoInfo.transcriptParts.length; i++) {
@@ -83,13 +85,16 @@ export default async function summarize(
           : (gptResponse) => (aggrSummary = gptResponse),
         // update aggregated summary to be response from gpt containing summ of prev + cur
         handleInvalidCreds,
-        handleServerError,
+        // handleServerError,
         isLastPage ? response_tokens : 0
       ).catch(async (err) => {
+        if (err.name === "AbortError") abortAllReq = true;
         missedPages.push(page);
         aggrSummary = curAggr; // set aggr summary to the prev summ
         i--;
       });
+
+      if (abortAllReq) break;
     }
   }
 

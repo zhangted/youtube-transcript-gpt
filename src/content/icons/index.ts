@@ -5,6 +5,7 @@ import MoonIcon from "./MoonIcon";
 import Spinner from "./Spinner";
 import SunIcon from "./SunIcon";
 import CogIcon from "./CogIcon";
+import StopIcon from "./StopIcon";
 
 export {
   ArrowClockwise,
@@ -14,4 +15,5 @@ export {
   Spinner,
   SunIcon,
   CogIcon,
+  StopIcon,
 };

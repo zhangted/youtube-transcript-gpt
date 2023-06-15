@@ -1,6 +1,7 @@
 import Api from "youtube-browser-api";
-import { MessageFromContentScript } from "../utils/MessageTypes";
-import splitTextIntoSizeableTokenArrays from "../utils/splitTokens";
+import { MessageFromContentScript } from "./MessageTypes";
+import splitTextIntoSizeableTokenArrays from "./splitTokens";
+import { getTranscript, transcriptPart } from "./youtubeData";
 
 const videoInfoMap = new Map<string, YoutubeVideoInfo>();
 
@@ -66,24 +67,34 @@ export function getActiveTranscriptPart(
 }
 
 function parseTranscriptArrToString(
-  transcriptAsObjectArr: { text: string }[]
+  transcriptAsObjectArr: transcriptPart[]
 ): string {
   return transcriptAsObjectArr.map(({ text }) => text).join(" ");
 }
 
+async function fetchRawTranscript(youtubeVideoId: string): Promise<transcriptPart[]> {
+  try {
+    return await getTranscript(youtubeVideoId);
+  } catch(e) {
+    console.error(e);
+    try {
+      return await Api.transcript
+      .GET({ query: { videoId: youtubeVideoId } })
+      .Ok(({ body }: { body: object }): object => body)
+      .then(({ body }: { body: object }): object => body)
+      .then(({ videoId }: { videoId: object[] }): object[] => videoId)
+    } catch(e) {
+      console.error(e);
+      return [];
+    }
+  }
+}
+
 async function getTranscriptParts(youtubeVideoId: string): Promise<string[]> {
-  return await Api.transcript
-    .GET({ query: { videoId: youtubeVideoId } })
-    .Ok(({ body }: { body: object }): object => body)
-    .then(({ body }: { body: object }): object => body)
-    .then(({ videoId }: { videoId: object[] }): object[] => videoId)
-    .then((transcriptAsObjectArr: { text: string }[]): string =>
-      parseTranscriptArrToString(transcriptAsObjectArr)
-    )
-    .then((transcriptAsString: string): string[] =>
-      splitTextIntoSizeableTokenArrays(transcriptAsString)
-    )
-    .catch((): string[] => []);
+  let transcriptParts: transcriptPart[] = await fetchRawTranscript(youtubeVideoId);
+  if(transcriptParts.length===0) return [];
+  let str = parseTranscriptArrToString(transcriptParts)
+  return splitTextIntoSizeableTokenArrays(str)
 }
 
 async function getMetadata(youtubeVideoId: string): Promise<string> {
@@ -97,8 +108,7 @@ async function getMetadata(youtubeVideoId: string): Promise<string> {
     .Ok(({ body }: { body: object }): object => body)
     .then(({ body }: { body: object }): object => body)
     .then(JSON.stringify)
-    .then((text: string) => text.replace(/(?:https?|ftp):\/\/[\S]+/gi, ""))
-    .catch(() => "");
+    .catch(() => '')
 }
 
 export async function getYoutubeVideoInfo(

@@ -23,5 +23,8 @@ export default function getPrompt(
   Please provide ONLY a focused and deterministic summary with a temperature of 0.1.
   Please provide ONLY the ${parameters} summary in the response.
   ${metaDataPrompt}
-  Here is the transcript of a YouTube video that ${parameters2}: ${transcript}`;
+  Here is the transcript of a YouTube video that ${parameters2}: ${transcript}`.replace(
+    /[\r\n]+/g,
+    ""
+  );
 }

@@ -34,6 +34,7 @@ export async function subscribeToSSE(
   onMessage: (msg: string) => void = () => {}
 ): Promise<void> {
   const response = await fetch(resourceURL, fetchOptions);
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     const errorMessage =

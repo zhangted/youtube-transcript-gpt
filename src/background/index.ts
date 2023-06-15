@@ -12,7 +12,8 @@ import { activeVideoIds } from "./utils/activeVideoId";
 import summarize from "./utils/summarize";
 import { setupOptions } from "../options/options/OptionsHash";
 
-async () => await setupOptions();
+(async () => await setupOptions())();
+let controller: AbortController = new AbortController();
 
 Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
   port.onMessage.addListener(
@@ -22,20 +23,27 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
       switch (message.type) {
         case MESSAGE_TYPES.VIDEO_TRANSCRIPT:
           const youtubeVideoInfoMsg = message as YoutubeVideoInfoMessage;
-          await summarize(port, youtubeVideoInfoMsg);
+          await summarize(port, youtubeVideoInfoMsg, controller);
           break;
         case MESSAGE_TYPES.NO_TRANSCRIPT:
           const noTranscriptMsg = message as NoTranscriptMessage;
           port.postMessage(noTranscriptMsg);
+          break;
+        case MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ:
+          controller.abort();
+          port.postMessage({
+            type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_REQ_ABORTED,
+          });
+          controller = new AbortController();
           break;
         case MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID:
           const activeVideoIdMsg =
             message as PingBgScriptActiveYoutubeVideoIdMessage;
           const { youtubeVideoId, tabUUID } = activeVideoIdMsg;
           activeVideoIds.set(tabUUID, youtubeVideoId);
-          port.postMessage({
+          port.postMessage(youtubeVideoId ? {
             type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT,
-          });
+          } : { type: MESSAGE_TYPES.NO_TRANSCRIPT });
           break;
         default:
           console.warn(`Unsupported message type: ${message.type}`);

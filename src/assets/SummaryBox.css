@@ -9,3 +9,29 @@
   background-color: #323232;
   color: #e8e8e8;
 }
+
+#summary-wrapper button[title^="Stop summarization"] {
+  background-color: rgb(223, 49, 49);
+  color: #cfcfcf;
+}
+
+#summary-wrapper button[title^="Stop summarization"]:hover {
+  background-color: rgb(165, 24, 24);
+  color: #d1c9c9;
+}
+
+#summary-wrapper button[title^="Refresh Summary"] {
+  background-color: rgb(45, 200, 88);
+  color: black;
+}
+
+#summary-wrapper button[title^="Refresh Summary"]:hover {
+  background-color: rgb(34, 146, 66);
+  color: black;
+}
+
+#summary-wrapper .button-placeholder {
+  width: 40px;
+  height: 0;
+  display: inline-block;
+}

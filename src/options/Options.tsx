@@ -17,18 +17,20 @@ import {
 
 export function Options({
   exitButton = undefined,
+  customHeaderText = undefined,
+  optionsHash,
 }: {
   exitButton?: JSX.Element | undefined;
+  customHeaderText?: string | undefined;
+  optionsHash: OptionsHash
 }): JSX.Element {
-  const autoSaveOnChange = exitButton !== undefined;
-
   const [curSettings, setCurSettings] =
-    useState<OptionsHash>(optionsHashDefaults);
+    useState<OptionsHash>(optionsHash);
   const [syncs, setSyncs] = useState<number>(0);
   const [status, setStatus] = useState<JSX.Element>();
 
   const getSetCurSettings = () =>
-    setupOptions().then((fetchedSettings) => {
+    getOptionsHash().then((fetchedSettings) => {
       const changed =
         JSON.stringify(curSettings) !== JSON.stringify(fetchedSettings);
       if (changed) setCurSettings(fetchedSettings);
@@ -36,16 +38,8 @@ export function Options({
 
   useEffect(() => {
     getSetCurSettings();
-  }, []);
-
-  useEffect(() => {
-    getSetCurSettings();
     console.log("refetch settings");
   }, [syncs]);
-
-  useEffect(() => {
-    if (autoSaveOnChange) saveOptions();
-  }, [curSettings]);
 
   const afterSave = (msgEle: JSX.Element): void => {
     setStatus(msgEle);
@@ -73,10 +67,7 @@ export function Options({
         };
     await setOptionsHash(obj)
       .then(() => {
-        const showSaveMsg =
-          (autoSaveOnChange && syncs !== 0) || !autoSaveOnChange;
-        if (showSaveMsg)
-          afterSave(<div style={{ color: "green" }}>Saved!</div>);
+        afterSave(<div style={{ color: "green" }}>Saved!</div>);
         setSyncs(syncs + 1);
       })
       .catch((e) =>
@@ -121,7 +112,7 @@ export function Options({
 
   return (
     <div>
-      <h2>Youtube Video Summary Options</h2>
+      <h2>{customHeaderText ?? 'Youtube Video Summary Options'}</h2>
 
       {SelectOptionSettingElement(
         GPT_LANGUAGE,
@@ -163,15 +154,13 @@ export function Options({
       }
 
       <div style={{ margin: "10px" }}>
-        {!autoSaveOnChange && (
-          <button onClick={async () => await saveOptions()}>
+        {!exitButton && <button onClick={async () => await saveOptions()}>
             <b>Save</b>
-          </button>
-        )}
+          </button>}
         &nbsp;&nbsp;
         <button onClick={resetOptions}>Reset</button>
         &nbsp;&nbsp;
-        {exitButton && exitButton}
+        {exitButton && <span onClick={async () => await saveOptions()}>{exitButton}</span>}
         <div style={{ height: "15px", margin: "4px 0 0 0" }}>{status}</div>
       </div>
     </div>

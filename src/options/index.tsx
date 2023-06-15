@@ -1,7 +1,12 @@
 import { render } from "preact";
 import { Options } from "./Options";
+import { getOptionsHash } from "./options/OptionsHash";
 
 const insertElement: HTMLElement =
   document.querySelector("#app") ?? document.body;
 
-render(<Options />, insertElement);
+async function mount() {
+  render(<Options optionsHash={await getOptionsHash()} />, insertElement);
+}
+
+mount();

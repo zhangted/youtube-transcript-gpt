@@ -56,7 +56,6 @@ export default async function askChatGPT(
   abortSignal: AbortSignal,
   streamingCallback = (gptResponse: string): void => {},
   handleInvalidCreds = (): void => {},
-  handleServerError = (): void => {},
   forcedTokenSuggestion: number = 200
 ) {
   const token: string | undefined = await setupAccessToken();
@@ -83,6 +82,7 @@ export default async function askChatGPT(
       data = JSON.parse(message);
     } catch (err) {
       console.error(err);
+      console.log(message);
       return;
     }
     const fromAssistant = data?.message?.author?.role === "assistant";
@@ -133,15 +133,16 @@ export default async function askChatGPT(
     onMessage
   ).catch((err: Error | SSEError): void => {
     sseConnectionActive = false;
+    if (err.name === "AbortError") throw err;
     console.error(err);
     const sseErr = err as SSEError;
     switch (sseErr?.status) {
       case 401:
         return handleInvalidCredsExt();
       case 429:
-        return handleServerError();
+        return;
       default:
-        return handleServerError();
+        return;
     }
   });
 }

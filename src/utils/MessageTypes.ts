@@ -1,4 +1,4 @@
-import { YoutubeVideoInfo } from "../content/YoutubeVideoInfo";
+import { YoutubeVideoInfo } from "./YoutubeVideoInfo";
 import { OptionsHashKey } from "../options/options/OptionsHash";
 
 export const MESSAGE_TYPES = {
@@ -9,8 +9,10 @@ export const MESSAGE_TYPES = {
   LONG_TRANSCRIPT_SUMMARIZATION_STATUS: "LONG_TRANSCRIPT_SUMMARIZATION_STATUS",
   SERVER_SENT_EVENTS_END: "SERVER_SENT_EVENTS_END",
   SERVER_ERROR_RESPONSE: "SERVER_ERROR_RESPONSE",
+  PING_BG_SCRIPT_ABORT_REQ: "PING_BG_SCRIPT_ABORT_REQ",
   PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID:
     "PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID",
+  PING_CONTENT_SCRIPT_REQ_ABORTED: "PING_CONTENT_SCRIPT_REQ_ABORTED",
   PING_CONTENT_SCRIPT_FOR_TRANSCRIPT: "PING_CONTENT_SCRIPT_FOR_TRANSCRIPT",
   CHANGED_CHROME_EXT_SETTING: "CHANGED_CHROME_EXT_SETTING",
 };
@@ -49,11 +51,19 @@ export interface ServerErrorResponseMessage {
   type: typeof MESSAGE_TYPES.SERVER_ERROR_RESPONSE;
 }
 
+export interface PingBgScriptAbortReqMessage {
+  type: typeof MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ;
+}
+
 export interface PingBgScriptActiveYoutubeVideoIdMessage {
   // tell bg script about current youtube video id on a tab
   type: typeof MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID;
   youtubeVideoId: string;
   tabUUID: string;
+}
+
+export interface PingContentScriptReqAbortedMessage {
+  type: typeof MESSAGE_TYPES.PING_CONTENT_SCRIPT_REQ_ABORTED;
 }
 
 export interface PingContentScriptForTranscriptMessage {
