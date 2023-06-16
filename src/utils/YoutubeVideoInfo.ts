@@ -102,17 +102,18 @@ async function getTranscriptParts(youtubeVideoId: string): Promise<string[]> {
 }
 
 async function getMetadata(youtubeVideoId: string): Promise<string> {
-  return await Api.content
-    .GET({
-      query: {
-        id: youtubeVideoId,
-        params: ["title", "channel"],
-      },
-    })
-    .Ok(({ body }: { body: object }): object => body)
-    .then(({ body }: { body: object }): object => body)
-    .then(JSON.stringify)
-    .catch(() => "");
+  return "";
+  // return await Api.content
+  //   .GET({
+  //     query: {
+  //       id: youtubeVideoId,
+  //       params: ["title", "channel"],
+  //     },
+  //   })
+  //   .Ok(({ body }: { body: object }): object => body)
+  //   .then(({ body }: { body: object }): object => body)
+  //   .then(JSON.stringify)
+  //   .catch(() => "");
 }
 
 export async function getYoutubeVideoInfo(
@@ -130,6 +131,8 @@ export async function getYoutubeVideoInfo(
     if (transcriptPartsResult.status === "rejected") return null;
 
     const transcriptParts: string[] = transcriptPartsResult.value;
+    console.log(transcriptParts);
+    console.log(metaDataResult);
     const metaData: string =
       metaDataResult.status === "fulfilled" ? metaDataResult.value : "";
 

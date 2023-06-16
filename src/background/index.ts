@@ -39,15 +39,16 @@ Browser.runtime.onConnect.addListener((port: Browser.Runtime.Port) => {
         case MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID:
           const activeVideoIdMsg =
             message as PingBgScriptActiveYoutubeVideoIdMessage;
-          const { youtubeVideoId, tabUUID } = activeVideoIdMsg;
+          const { youtubeVideoId, tabUUID, reqResponse } = activeVideoIdMsg;
           activeVideoIds.set(tabUUID, youtubeVideoId);
-          port.postMessage(
-            youtubeVideoId
-              ? {
-                  type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT,
-                }
-              : { type: MESSAGE_TYPES.NO_TRANSCRIPT }
-          );
+          if (reqResponse)
+            port.postMessage(
+              youtubeVideoId
+                ? {
+                    type: MESSAGE_TYPES.PING_CONTENT_SCRIPT_FOR_TRANSCRIPT,
+                  }
+                : { type: MESSAGE_TYPES.NO_TRANSCRIPT }
+            );
           break;
         default:
           console.warn(`Unsupported message type: ${message.type}`);

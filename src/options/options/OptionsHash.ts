@@ -1,12 +1,14 @@
 import { GPT_LANGUAGE_DEFAULT } from "./GPT_LANGUAGE";
 import { SUMMARIZATION_METHOD_DEFAULT } from "./SUMMARIZATION_METHOD";
 import { DEFAULT_REPSONSE_TOKENS } from "./RESPONSE_TOKENS";
+import { AUTOMATION_DEFAULT } from "./AUTOMATION";
 
 export interface OptionsHash extends Record<string, string | number> {
   // avail options
   gpt_language: string;
   response_tokens: number;
   summarization_method: string;
+  automation: string;
 }
 
 export type OptionsHashKey = keyof OptionsHash;
@@ -16,6 +18,7 @@ export const optionsHashDefaults: OptionsHash = {
   gpt_language: GPT_LANGUAGE_DEFAULT,
   response_tokens: DEFAULT_REPSONSE_TOKENS,
   summarization_method: SUMMARIZATION_METHOD_DEFAULT,
+  automation: AUTOMATION_DEFAULT,
 };
 
 export const settingsKeys: OptionsHashKey[] = Object.keys(

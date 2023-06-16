@@ -5,7 +5,7 @@ export default defineManifest({
   author: "tedcbook@gmail.com",
   description:
     "Get youtube summaries by chatgpt injected automatically if the video has a transcript! ",
-  version: "0.2.0",
+  version: "0.2.2",
   manifest_version: 3,
   icons: {
     16: "img/logo-16.png",

@@ -60,6 +60,7 @@ export interface PingBgScriptActiveYoutubeVideoIdMessage {
   type: typeof MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID;
   youtubeVideoId: string;
   tabUUID: string;
+  reqResponse: boolean;
 }
 
 export interface PingContentScriptReqAbortedMessage {

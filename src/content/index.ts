@@ -1,12 +1,15 @@
 import { h, render } from "preact";
 import { v4 as uuidv4 } from "uuid";
 import SummaryBox from "./SummaryBox";
+import Browser from "webextension-polyfill";
+import { getOptionsHash } from "../options/options/OptionsHash";
 
 console.info("the content script is running");
 
 let tabUUID: string = uuidv4();
-let prevUrl: string | null = null;
+let port: Browser.Runtime.Port = Browser.runtime.connect();
 let summaryBox: HTMLElement | null = null;
+let prevUrl: string | null = null;
 
 function waitForElm(selector: string) {
   return new Promise((resolve) => {
@@ -28,34 +31,36 @@ function waitForElm(selector: string) {
   });
 }
 
-function updateSummaryWrapper() {
+async function updateSummaryWrapper() {
+  const { automation } = await getOptionsHash();
+
   waitForElm("#secondary.style-scope.ytd-watch-flexy").then(() => {
-    summaryBox?.remove();
+    if (summaryBox) render(null, summaryBox);
     summaryBox = document.createElement("div");
     summaryBox.id = "summary-wrapper";
-    render(h(SummaryBox, { uuid: tabUUID }), summaryBox);
+    render(h(SummaryBox, { uuid: tabUUID, port, automation }), summaryBox);
     document
       .querySelector("#secondary.style-scope.ytd-watch-flexy")
       ?.prepend(summaryBox);
   });
 }
 
-function tryUpdateSummaryWrapper() {
+async function tryUpdateSummaryWrapper() {
   if (prevUrl !== window.location.href) {
     prevUrl = window.location.href;
-    updateSummaryWrapper();
+    await updateSummaryWrapper();
   }
 }
 
-window.addEventListener("click", () => tryUpdateSummaryWrapper);
+window.addEventListener("click", async () => await tryUpdateSummaryWrapper());
 
-new MutationObserver(([{ type, attributeName }]) => {
+new MutationObserver(async ([{ type, attributeName }]) => {
   if (type === "attributes" && attributeName === "href")
-    tryUpdateSummaryWrapper();
+    await tryUpdateSummaryWrapper();
 }).observe(document, {
   subtree: true,
   attributes: true,
   attributeFilter: ["href"],
 });
 
-waitForElm("#secondary").then(tryUpdateSummaryWrapper);
+waitForElm("#secondary").then(async () => await tryUpdateSummaryWrapper());

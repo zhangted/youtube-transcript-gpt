@@ -14,6 +14,7 @@ import {
   setOptionsHash,
   setupOptions,
 } from "./options/OptionsHash";
+import { AUTOMATION } from "./options/AUTOMATION";
 
 export function Options({
   exitButton = undefined,
@@ -63,6 +64,9 @@ export function Options({
           )
             ? curSettings.summarization_method
             : optionsHashDefaults.summarization_method,
+          automation: AUTOMATION.includes(curSettings.automation)
+            ? curSettings.automation
+            : optionsHashDefaults.automation,
         };
     await setOptionsHash(obj)
       .then(() => {
@@ -113,6 +117,7 @@ export function Options({
     <div>
       <h2>{customHeaderText ?? "Youtube Video Summary Options"}</h2>
 
+      {SelectOptionSettingElement(AUTOMATION, "automation", "Automation:")}
       {SelectOptionSettingElement(
         GPT_LANGUAGE,
         "gpt_language",

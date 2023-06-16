@@ -25,6 +25,7 @@ import {
   CogIcon,
   StopIcon,
 } from "./icons";
+import { AUTOMATION_DEFAULT } from "../options/options/AUTOMATION";
 
 const getOnMountText = (): string =>
   getYoutubeVideoId() === "" ? "" : "loading";
@@ -69,9 +70,17 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
   }
 };
 
-export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
+export default function SummaryBox({
+  uuid,
+  port,
+  automation,
+}: {
+  uuid: string;
+  port: Browser.Runtime.Port;
+  automation: string;
+}): JSX.Element {
   const tabUUID = useRef<string>(uuid);
-  const [port] = useState<Browser.Runtime.Port>(Browser.runtime.connect());
+  const autoSummarize = automation === AUTOMATION_DEFAULT;
   const [text, setText] = useState<string>(getOnMountText());
   const [youtubeVideoInfo, setYoutubeVideoInfo] = useState<YoutubeVideoInfo>(
     new YoutubeVideoInfo()
@@ -103,7 +112,6 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
     (youtubeVideoInfo: YoutubeVideoInfo): void => {
       setYoutubeVideoInfo(youtubeVideoInfo);
       if (getYoutubeVideoId()) {
-        setText("loading");
         sendTranscriptToBgScript(port, youtubeVideoInfo, tabUUID.current);
       }
     },
@@ -152,18 +160,29 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
       );
     }, []);
 
+  const pingBgScriptActiveVideoId = useCallback(
+    (reqResponse: boolean = true) =>
+      port.postMessage({
+        type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
+        youtubeVideoId: getYoutubeVideoId(),
+        tabUUID: tabUUID.current,
+        reqResponse,
+      }),
+    []
+  );
+
   useEffect(() => {
     port.onMessage.addListener(listenForBgScriptResponse);
-    port.postMessage({
-      type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
-      youtubeVideoId: getYoutubeVideoId(),
-      tabUUID: tabUUID.current,
-    });
+    setText("");
+    if (autoSummarize) pingBgScriptActiveVideoId();
+    else
+      getVideoIdAndTranscriptObject()
+        .then(setYoutubeVideoInfo)
+        .then(() => pingBgScriptActiveVideoId(false));
 
     return () => {
       sendAbortReqBgScript();
       port.onMessage.removeListener(listenForBgScriptResponse);
-      port.disconnect();
     };
   }, []);
 
@@ -308,6 +327,7 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
           {text !== "loading" &&
             !text.match(/^Summarizing (\d+)$/) &&
             text !== "options" &&
+            text !== "" &&
             youtubeVideoInfo.hasTranscript() &&
             "Summary"}
         </div>
@@ -341,6 +361,16 @@ export default function SummaryBox({ uuid }: { uuid: string }): JSX.Element {
           `${text}/${youtubeVideoInfo.transcriptParts.length}`,
           <Spinner />,
         ]}
+      />
+    );
+  else if (text === "")
+    return (
+      <Wrapper
+        elements={
+          youtubeVideoInfo.hasTranscript()
+            ? "Transcript loaded"
+            : "Video has no transcript"
+        }
       />
     );
   return <Wrapper elements={text} />;
