@@ -1,4 +1,4 @@
-// this module will be accessed by diff modules in the bg script
+// what is the youtube video id currently active on a tab?
 
 export type tabUUID = string;
 export type youtubeVideoId = string;

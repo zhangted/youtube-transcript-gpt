@@ -7,22 +7,9 @@ import { getOptionsHash } from "../options/options/OptionsHash";
 console.info("the content script is running");
 
 let tabUUID: string = uuidv4();
-let port: Browser.Runtime.Port = setupPort();
 let summaryBox: HTMLElement | null = null;
 let prevUrl: string | null = null;
-
-function setupPort() {
-  let port = Browser.runtime.connect();
-
-  const reconnect = () =>
-    setTimeout(() => {
-      port = Browser.runtime.connect();
-    }, 2000);
-
-  const handleDisconnect = () => reconnect();
-  port.onDisconnect.addListener(handleDisconnect);
-  return port;
-}
+export let port: Browser.Runtime.Port = setupPort();
 
 function waitForElm(selector: string) {
   return new Promise((resolve) => {
@@ -44,14 +31,27 @@ function waitForElm(selector: string) {
   });
 }
 
-async function updateSummaryWrapper() {
-  const { automation } = await getOptionsHash();
+function setupPort(): Browser.Runtime.Port {
+  return Browser.runtime.connect()
+}
+
+async function remount() {
+  port = setupPort();
+  await updateSummaryWrapper(true);
+}
+
+async function updateSummaryWrapper(reqFromError: boolean = false) {
+  let { automation } = await getOptionsHash();
 
   waitForElm("#secondary.style-scope.ytd-watch-flexy").then(() => {
-    if (summaryBox) render(null, summaryBox);
+    if (summaryBox) {
+      render(null, summaryBox);
+      summaryBox?.remove();
+    }
     summaryBox = document.createElement("div");
     summaryBox.id = "summary-wrapper";
-    render(h(SummaryBox, { uuid: tabUUID, port, automation }), summaryBox);
+    render(h(SummaryBox, { uuid: tabUUID, automation, remount, reqFromError }), summaryBox);
+    reqFromError = false
     document
       .querySelector("#secondary.style-scope.ytd-watch-flexy")
       ?.prepend(summaryBox);

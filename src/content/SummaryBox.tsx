@@ -27,6 +27,7 @@ import {
 } from "./icons";
 import { AUTOMATION_DEFAULT } from "../options/options/AUTOMATION";
 
+const port = async() => import('.').then(({port})=>port);
 const getOnMountText = (): string =>
   getYoutubeVideoId() === "" ? "" : "loading";
 const calcIsDarkMode = (): boolean =>
@@ -39,12 +40,6 @@ const getYoutubeVideoId = (
   const { id, service } = getVideoId(currentHref);
   return service === "youtube" && id ? id : "";
 };
-
-const sendTranscriptToBgScript = async (
-  port: Browser.Runtime.Port,
-  videoInfoInstance: YoutubeVideoInfo,
-  tabUUID: string
-) => port.postMessage({ ...videoInfoInstance.getPostMessageObject(), tabUUID });
 
 const getMainTextToInsert = (message: MessageFromBgScript): string => {
   let youtubeVideoId: string, gptResponse: string, page: number;
@@ -70,14 +65,25 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
   }
 };
 
+async function portDecorator(func: () => void, remount: () => void):Promise<void> {
+  try {
+    await func();
+  } catch(e) {
+    console.error(e)
+    await remount();
+  }
+}
+
 export default function SummaryBox({
   uuid,
-  port,
   automation,
+  remount,
+  reqFromError
 }: {
   uuid: string;
-  port: Browser.Runtime.Port;
   automation: string;
+  remount: () => void;
+  reqFromError: boolean
 }): JSX.Element {
   const tabUUID = useRef<string>(uuid);
   const autoSummarize = automation === AUTOMATION_DEFAULT;
@@ -103,20 +109,18 @@ export default function SummaryBox({
     [summMethod]
   );
 
-  const sendAbortReqBgScript = useCallback(
-    () => port.postMessage({ type: MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ }),
-    []
-  );
+  const sendAbortReqBgScript = async() => await portDecorator(
+    async () => (await port()).postMessage({ type: MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ }),
+    remount,
+  )
 
-  const setYoutubeVideoInfoAndSendToBgScript = useCallback(
-    (youtubeVideoInfo: YoutubeVideoInfo): void => {
+  const setYoutubeVideoInfoAndSendToBgScript = async(youtubeVideoInfo: YoutubeVideoInfo) => {
       setYoutubeVideoInfo(youtubeVideoInfo);
-      if (getYoutubeVideoId()) {
-        sendTranscriptToBgScript(port, youtubeVideoInfo, tabUUID.current);
-      }
-    },
-    []
-  );
+      if (getYoutubeVideoId()) await portDecorator(
+        async () => (await port()).postMessage({ ...youtubeVideoInfo.getPostMessageObject(), tabUUID: tabUUID.current }),
+        remount
+      )
+  };
 
   const handleChangedChromeSetting = useCallback(
     async (message: MessageFromBgScript) => {
@@ -155,35 +159,39 @@ export default function SummaryBox({
   const getTranscriptAndSendToBgScript =
     useCallback(async (): Promise<void> => {
       setText(getOnMountText());
-      setYoutubeVideoInfoAndSendToBgScript(
+      await setYoutubeVideoInfoAndSendToBgScript(
         await getVideoIdAndTranscriptObject()
       );
     }, []);
 
-  const pingBgScriptActiveVideoId = useCallback(
-    (reqResponse: boolean = true) =>
-      port.postMessage({
+  const pingBgScriptActiveVideoId = async(reqResponse: boolean = true) =>
+    await portDecorator(
+      async() => (await port()).postMessage({
         type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
         youtubeVideoId: getYoutubeVideoId(),
         tabUUID: tabUUID.current,
         reqResponse,
       }),
-    []
-  );
+      remount
+    )
 
   useEffect(() => {
-    port.onMessage.addListener(listenForBgScriptResponse);
-    setText("");
-    if (autoSummarize) pingBgScriptActiveVideoId();
-    else
-      getVideoIdAndTranscriptObject()
-        .then(setYoutubeVideoInfo)
-        .then(() => pingBgScriptActiveVideoId(false));
+    port()
+      .then(port=>port.onMessage.addListener(listenForBgScriptResponse))
+      .then(async() => {
+        setText("");
+        if (autoSummarize || reqFromError ) await pingBgScriptActiveVideoId();
+        else
+          getVideoIdAndTranscriptObject()
+            .then(setYoutubeVideoInfo)
+            .then(async() => await pingBgScriptActiveVideoId(false));
+      })
 
     return () => {
       sendAbortReqBgScript();
-      port.onMessage.removeListener(listenForBgScriptResponse);
-    };
+      port()
+        .then(port =>port.onMessage.removeListener(listenForBgScriptResponse))
+    }
   }, []);
 
   const PrevPageButton = useCallback(
@@ -235,14 +243,11 @@ export default function SummaryBox({
     [youtubeVideoInfo]
   );
 
-  const StopButton = useCallback(
-    (): JSX.Element => (
+  const StopButton = (): JSX.Element => (
       <button title="Stop summarization" onClick={sendAbortReqBgScript}>
         <StopIcon />
       </button>
-    ),
-    []
-  );
+  )
 
   const ToggleThemeButton = useCallback(
     (): JSX.Element => (

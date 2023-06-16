@@ -6,10 +6,7 @@ import {
   shouldSummPagebyPage,
 } from "../../options/options/SUMMARIZATION_METHOD";
 import askChatGPT from "../clients/openai";
-import {
-  MESSAGE_TYPES,
-  YoutubeVideoInfoMessage,
-} from "../../types";
+import { MESSAGE_TYPES, YoutubeVideoInfoMessage } from "../../types";
 import { isVideoIdActive } from "./activeVideoId";
 
 export default async function summarize(
@@ -65,11 +62,12 @@ export default async function summarize(
       let page = i + 1;
       let isLastPage = page === youtubeVideoInfo.transcriptParts.length;
 
-      port.postMessage({
-        type: MESSAGE_TYPES.LONG_TRANSCRIPT_SUMMARIZATION_STATUS,
-        page,
-        youtubeVideoId,
-      });
+      if (!abortAllReq)
+        port.postMessage({
+          type: MESSAGE_TYPES.LONG_TRANSCRIPT_SUMMARIZATION_STATUS,
+          page,
+          youtubeVideoId,
+        });
       console.log(`summarizing ${youtubeVideoId} pg`, page);
 
       await askChatGPT(
@@ -85,7 +83,7 @@ export default async function summarize(
         // update aggregated summary to be response from gpt containing summ of prev + cur
         handleInvalidCreds,
         isLastPage ? response_tokens : 0
-      ).catch(async (err) => {
+      ).catch((err) => {
         if (err.name === "AbortError") abortAllReq = true;
         missedPages.push(page);
         aggrSummary = curAggr; // set aggr summary to the prev summ
