@@ -1,5 +1,5 @@
-import { YoutubeVideoInfo } from "./YoutubeVideoInfo";
-import { OptionsHashKey } from "../options/options/OptionsHash";
+import { YoutubeVideoInfo } from "./utils/YoutubeVideoInfo";
+import { OptionsHashKey } from "./options/options/OptionsHash";
 
 export const MESSAGE_TYPES = {
   VIDEO_TRANSCRIPT: "VIDEO_TRANSCRIPT",

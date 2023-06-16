@@ -1,5 +1,5 @@
 import Api from "youtube-browser-api";
-import { MessageFromContentScript } from "./MessageTypes";
+import { MessageFromContentScript } from "../types";
 import splitTextIntoSizeableTokenArrays from "./splitTokens";
 import { getMetadata, getTranscript, transcriptPart } from "./youtubeData";
 

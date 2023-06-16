@@ -7,7 +7,7 @@ import {
   NoTranscriptMessage,
   YoutubeVideoInfoMessage,
   PingBgScriptActiveYoutubeVideoIdMessage,
-} from "../utils/MessageTypes";
+} from "../types";
 import { activeVideoIds } from "./utils/activeVideoId";
 import summarize from "./utils/summarize";
 import { setupOptions } from "../options/options/OptionsHash";

@@ -14,9 +14,9 @@ import {
   LongTranscriptSummarizationStatusMessage,
   MESSAGE_TYPES,
   MessageFromBgScript,
-} from "../utils/MessageTypes";
+} from "../types";
 import {
-  ArrowClockwise,
+  PlayIcon,
   ArrowLeftSquareIcon,
   ArrowRightSquareIcon,
   MoonIcon,
@@ -220,14 +220,14 @@ export default function SummaryBox({
     [youtubeVideoInfo]
   );
 
-  const RefreshButton = useCallback(
+  const PlayButton = useCallback(
     (): JSX.Element =>
       youtubeVideoInfo.hasTranscript() ? (
         <button
           title="Refresh Summary"
           onClick={async (e) => await getTranscriptAndSendToBgScript()}
         >
-          <ArrowClockwise />
+          <PlayIcon />
         </button>
       ) : (
         <span />
@@ -321,7 +321,7 @@ export default function SummaryBox({
         youtubeVideoInfo.hasTranscript() ? (
           <StopButton />
         ) : (
-          <RefreshButton />
+          <PlayButton />
         )}
         <div style={{ fontWeight: "600", margin: "15px 0 10px 0" }}>
           {text !== "loading" &&

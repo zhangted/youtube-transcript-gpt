@@ -9,7 +9,7 @@ import askChatGPT from "../clients/openai";
 import {
   MESSAGE_TYPES,
   YoutubeVideoInfoMessage,
-} from "../../utils/MessageTypes";
+} from "../../types";
 import { isVideoIdActive } from "./activeVideoId";
 
 export default async function summarize(
@@ -52,7 +52,6 @@ export default async function summarize(
       controller.signal,
       sendToReactComponent,
       handleInvalidCreds
-      // handleServerError
     ).catch((err) => {
       if (err.name === "AbortError") abortAllReq = true;
     });
@@ -85,7 +84,6 @@ export default async function summarize(
           : (gptResponse) => (aggrSummary = gptResponse),
         // update aggregated summary to be response from gpt containing summ of prev + cur
         handleInvalidCreds,
-        // handleServerError,
         isLastPage ? response_tokens : 0
       ).catch(async (err) => {
         if (err.name === "AbortError") abortAllReq = true;
