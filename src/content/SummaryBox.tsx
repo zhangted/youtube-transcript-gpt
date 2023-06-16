@@ -62,7 +62,7 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
     case MESSAGE_TYPES.PING_CONTENT_SCRIPT_REQ_ABORTED:
       return "Stopped summarization";
     case MESSAGE_TYPES.NO_ACCESS_TOKEN:
-      return "Please login to OpenAI to access ChatGPT";
+      return "Please login to ChatGPT on a different tab";
     case MESSAGE_TYPES.NO_TRANSCRIPT:
       return "Video has no transcript";
     default:
@@ -368,7 +368,7 @@ export default function SummaryBox({
       <Wrapper
         elements={
           youtubeVideoInfo.hasTranscript()
-            ? "Transcript loaded"
+            ? "Assistant: Transcript loaded. Ready to summarize."
             : "Video has no transcript"
         }
       />

@@ -1,7 +1,7 @@
 // this module will be accessed by diff modules in the bg script
 
-type tabUUID = string;
-type youtubeVideoId = string;
+export type tabUUID = string;
+export type youtubeVideoId = string;
 
 const activeVideoIds = new Map<tabUUID, youtubeVideoId>();
 

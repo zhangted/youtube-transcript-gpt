@@ -1,14 +1,44 @@
+type videoId = string;
+type html = string;
+const youtubePagesHtml = new Map<videoId, html>();
+
 type transcriptLangOption = {
   language?: string;
   link?: string;
 };
 
+async function fetchVideoPageHtml(videoId: string): Promise<string> {
+  return youtubePagesHtml.has(videoId)
+    ? (youtubePagesHtml.get(videoId) as string)
+    : await fetch(`https://www.youtube.com/watch?v=${videoId}`)
+        .then((res) => res.text())
+        .then((html: string) => {
+          if (html.match(new RegExp("og:url")))
+            youtubePagesHtml.set(videoId, html);
+          return html;
+        });
+}
+
+export async function getMetadata(videoId: string): Promise<string> {
+  const videoPageHtml = await fetchVideoPageHtml(videoId);
+  const doc = new DOMParser().parseFromString(videoPageHtml, "text/html");
+  const sels = {
+    title: 'meta[name="title"]',
+    author: 'link[itemprop="name"]',
+  };
+  const metadata = Object.entries(sels).reduce((prev, [key, sel]) => {
+    const val = doc.querySelector(sel)?.getAttribute("content");
+    if (val) prev[key] = val;
+    return prev;
+  }, {} as { [key: string]: string });
+
+  return Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : "";
+}
+
 async function getLangOptionsWithLink(
   videoId: string
 ): Promise<transcriptLangOption[]> {
-  const videoPageHtml = await fetch(
-    "https://www.youtube.com/watch?v=" + videoId
-  ).then((res) => res.text());
+  const videoPageHtml = await fetchVideoPageHtml(videoId);
   const splittedHtml = videoPageHtml.split('"captions":');
 
   if (splittedHtml.length < 2) {

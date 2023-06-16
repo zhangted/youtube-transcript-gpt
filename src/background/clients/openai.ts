@@ -4,6 +4,7 @@ import ExpiryMap from "expiry-map";
 import { getOptionsHash, OptionsHash } from "../../options/options/OptionsHash";
 import getPrompt from "../utils/getPrompt";
 import { isVideoIdActive } from "../utils/activeVideoId";
+import { isDuplicateReq, networkReq } from "../utils/activeNetworkReq";
 
 const BASE_URL: string = "https://chat.openai.com";
 const AUTH_ENDPOINT: string = `${BASE_URL}/api/auth/session`;
@@ -68,6 +69,7 @@ export default async function askChatGPT(
   const onMessage = (message: string): void => {
     if (message === "[DONE]") {
       sseConnectionActive = false;
+      networkReq.delete(tabUUID);
       return;
     }
     let data:
@@ -104,9 +106,11 @@ export default async function askChatGPT(
   );
 
   // await logModels(token);
+  if (isDuplicateReq(tabUUID, videoId)) return;
   await waitForSSEConnection();
 
   sseConnectionActive = true;
+  networkReq.set(tabUUID, videoId);
   await subscribeToSSE(
     CONVO_ENDPOINT,
     {
@@ -133,6 +137,7 @@ export default async function askChatGPT(
     onMessage
   ).catch((err: Error | SSEError): void => {
     sseConnectionActive = false;
+    networkReq.delete(tabUUID);
     if (err.name === "AbortError") throw err;
     console.error(err);
     const sseErr = err as SSEError;

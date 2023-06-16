@@ -7,9 +7,22 @@ import { getOptionsHash } from "../options/options/OptionsHash";
 console.info("the content script is running");
 
 let tabUUID: string = uuidv4();
-let port: Browser.Runtime.Port = Browser.runtime.connect();
+let port: Browser.Runtime.Port = setupPort();
 let summaryBox: HTMLElement | null = null;
 let prevUrl: string | null = null;
+
+function setupPort() {
+  let port = Browser.runtime.connect();
+
+  const reconnect = () =>
+    setTimeout(() => {
+      port = Browser.runtime.connect();
+    }, 2000);
+
+  const handleDisconnect = () => reconnect();
+  port.onDisconnect.addListener(handleDisconnect);
+  return port;
+}
 
 function waitForElm(selector: string) {
   return new Promise((resolve) => {

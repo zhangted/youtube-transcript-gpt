@@ -1,7 +1,7 @@
 import Api from "youtube-browser-api";
 import { MessageFromContentScript } from "./MessageTypes";
 import splitTextIntoSizeableTokenArrays from "./splitTokens";
-import { getTranscript, transcriptPart } from "./youtubeData";
+import { getMetadata, getTranscript, transcriptPart } from "./youtubeData";
 
 const videoInfoMap = new Map<string, YoutubeVideoInfo>();
 
@@ -101,21 +101,6 @@ async function getTranscriptParts(youtubeVideoId: string): Promise<string[]> {
   return splitTextIntoSizeableTokenArrays(str);
 }
 
-async function getMetadata(youtubeVideoId: string): Promise<string> {
-  return "";
-  // return await Api.content
-  //   .GET({
-  //     query: {
-  //       id: youtubeVideoId,
-  //       params: ["title", "channel"],
-  //     },
-  //   })
-  //   .Ok(({ body }: { body: object }): object => body)
-  //   .then(({ body }: { body: object }): object => body)
-  //   .then(JSON.stringify)
-  //   .catch(() => "");
-}
-
 export async function getYoutubeVideoInfo(
   youtubeVideoId: string
 ): Promise<YoutubeVideoInfo> {
@@ -124,25 +109,19 @@ export async function getYoutubeVideoInfo(
   const existingYoutubeVideoInfo = videoInfoMap.get(youtubeVideoId);
   if (existingYoutubeVideoInfo !== undefined) return existingYoutubeVideoInfo;
 
-  const youtubeVideoInfo: YoutubeVideoInfo | null = await Promise.allSettled([
-    getTranscriptParts(youtubeVideoId),
-    getMetadata(youtubeVideoId),
-  ]).then(([transcriptPartsResult, metaDataResult]) => {
-    if (transcriptPartsResult.status === "rejected") return null;
+  const transcriptParts: string[] | null = await getTranscriptParts(
+    youtubeVideoId
+  ).catch(() => null);
+  if (!transcriptParts) return new YoutubeVideoInfo();
+  const metadata: string = await getMetadata(youtubeVideoId);
 
-    const transcriptParts: string[] = transcriptPartsResult.value;
-    console.log(transcriptParts);
-    console.log(metaDataResult);
-    const metaData: string =
-      metaDataResult.status === "fulfilled" ? metaDataResult.value : "";
+  const youtubeVideoInfo: YoutubeVideoInfo = new YoutubeVideoInfo(
+    transcriptParts,
+    0,
+    youtubeVideoId,
+    metadata
+  );
 
-    return new YoutubeVideoInfo(transcriptParts, 0, youtubeVideoId, metaData);
-  });
-
-  if (youtubeVideoInfo === null) {
-    return new YoutubeVideoInfo();
-  }
   videoInfoMap.set(youtubeVideoId, youtubeVideoInfo);
-
   return youtubeVideoInfo;
 }
