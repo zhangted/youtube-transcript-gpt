@@ -34,6 +34,6 @@ jobs:
           action: publish
           client_id: ${{ secrets.CLIENT_ID }}
           client_secret: ${{ secrets.CLIENT_SECRET }}
-          refresh_token: ${{ secrets.REFRESH_TOKEN }}
+          refresh_token: ${{ secrets.ACCESS_TOKEN }}
           zip_file: 'release.zip'
           extension_id: 'ibheopmbegmfgmkjpllifpmbciklaeda'
