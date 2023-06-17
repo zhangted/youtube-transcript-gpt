@@ -1,0 +1,39 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build prod files
+        run: npm run build
+      
+      - name: Zip files
+        run: zip -r release.zip ./build
+
+      - name: Publish Chrome extension to Chrome Web Store
+        # You may pin to the exact commit or the version.
+        # uses: MobileFirstLLC/cws-publish@569e87bc9a54ad7712ba6dc154a110d88af63b85
+        uses: MobileFirstLLC/cws-publish@2.1.1
+        with:
+          # Desired action, one of: upload, publish, testers
+          action: publish
+          client_id: ${{ secrets.CLIENT_ID }}
+          client_secret: ${{ secrets.CLIENT_SECRET }}
+          refresh_token: ${{ secrets.REFRESH_TOKEN }}
+          zip_file: 'release.zip'
+          extension_id: 'ibheopmbegmfgmkjpllifpmbciklaeda'
