@@ -28,9 +28,12 @@
     "eventsource-parser": "^1.0.0",
     "expiry-map": "^2.0.0",
     "get-video-id": "^3.6.5",
+    "gpt-tokens": "^1.0.9",
     "map-expire": "^1.0.2",
     "preact": "^10.8.2",
     "uuid": "^9.0.0",
+    "vite-plugin-top-level-await": "^1.3.1",
+    "vite-plugin-wasm": "^3.2.2",
     "webextension-polyfill": "^0.10.0",
     "youtube-browser-api": "^0.0.3"
   },

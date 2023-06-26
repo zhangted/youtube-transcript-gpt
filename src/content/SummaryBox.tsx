@@ -1,6 +1,5 @@
 import "../assets/SummaryBox.css";
 import getVideoId from "get-video-id";
-import Browser from "webextension-polyfill";
 import {
   getYoutubeVideoInfo,
   YoutubeVideoInfo,
@@ -27,7 +26,7 @@ import {
 } from "./icons";
 import { AUTOMATION_DEFAULT } from "../options/options/AUTOMATION";
 
-const port = async() => import('.').then(({port})=>port);
+const port = async () => import(".").then(({ port }) => port);
 const getOnMountText = (): string =>
   getYoutubeVideoId() === "" ? "" : "loading";
 const calcIsDarkMode = (): boolean =>
@@ -52,7 +51,8 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
     case MESSAGE_TYPES.LONG_TRANSCRIPT_SUMMARIZATION_STATUS:
       ({ page, youtubeVideoId } =
         message as LongTranscriptSummarizationStatusMessage);
-      if (getYoutubeVideoId() === youtubeVideoId) return `Summarizing ${page}`;
+      if (getYoutubeVideoId() === youtubeVideoId)
+        return `Summarizing (${page} pages left)`;
       return "";
     case MESSAGE_TYPES.PING_CONTENT_SCRIPT_REQ_ABORTED:
       return "Stopped summarization";
@@ -60,16 +60,21 @@ const getMainTextToInsert = (message: MessageFromBgScript): string => {
       return "Please login to ChatGPT on a different tab";
     case MESSAGE_TYPES.NO_TRANSCRIPT:
       return "Video has no transcript";
+    case MESSAGE_TYPES.SERVER_ERROR_RESPONSE:
+      return "Summarization aborted";
     default:
       return "";
   }
 };
 
-async function portDecorator(func: () => void, remount: () => void):Promise<void> {
+async function portDecorator(
+  func: () => void,
+  remount: () => void
+): Promise<void> {
   try {
     await func();
-  } catch(e) {
-    console.error(e)
+  } catch (e) {
+    console.error(e);
     await remount();
   }
 }
@@ -78,12 +83,12 @@ export default function SummaryBox({
   uuid,
   automation,
   remount,
-  reqFromError
+  reqFromError,
 }: {
   uuid: string;
   automation: string;
   remount: () => void;
-  reqFromError: boolean
+  reqFromError: boolean;
 }): JSX.Element {
   const tabUUID = useRef<string>(uuid);
   const autoSummarize = automation === AUTOMATION_DEFAULT;
@@ -109,17 +114,30 @@ export default function SummaryBox({
     [summMethod]
   );
 
-  const sendAbortReqBgScript = async() => await portDecorator(
-    async () => (await port()).postMessage({ type: MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ }),
-    remount,
-  )
+  const sendAbortReqBgScript = async () =>
+    await portDecorator(
+      async () =>
+        (
+          await port()
+        ).postMessage({ type: MESSAGE_TYPES.PING_BG_SCRIPT_ABORT_REQ }),
+      remount
+    );
 
-  const setYoutubeVideoInfoAndSendToBgScript = async(youtubeVideoInfo: YoutubeVideoInfo) => {
-      setYoutubeVideoInfo(youtubeVideoInfo);
-      if (getYoutubeVideoId()) await portDecorator(
-        async () => (await port()).postMessage({ ...youtubeVideoInfo.getPostMessageObject(), tabUUID: tabUUID.current }),
+  const setYoutubeVideoInfoAndSendToBgScript = async (
+    youtubeVideoInfo: YoutubeVideoInfo
+  ) => {
+    setYoutubeVideoInfo(youtubeVideoInfo);
+    if (getYoutubeVideoId())
+      await portDecorator(
+        async () =>
+          (
+            await port()
+          ).postMessage({
+            ...youtubeVideoInfo.getPostMessageObject(),
+            tabUUID: tabUUID.current,
+          }),
         remount
-      )
+      );
   };
 
   const handleChangedChromeSetting = useCallback(
@@ -164,34 +182,38 @@ export default function SummaryBox({
       );
     }, []);
 
-  const pingBgScriptActiveVideoId = async(reqResponse: boolean = true) =>
+  const pingBgScriptActiveVideoId = async (reqResponse: boolean = true) =>
     await portDecorator(
-      async() => (await port()).postMessage({
-        type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
-        youtubeVideoId: getYoutubeVideoId(),
-        tabUUID: tabUUID.current,
-        reqResponse,
-      }),
+      async () =>
+        (
+          await port()
+        ).postMessage({
+          type: MESSAGE_TYPES.PING_BG_SCRIPT_ACTIVE_YOUTUBE_VIDEO_ID,
+          youtubeVideoId: getYoutubeVideoId(),
+          tabUUID: tabUUID.current,
+          reqResponse,
+        }),
       remount
-    )
+    );
 
   useEffect(() => {
     port()
-      .then(port=>port.onMessage.addListener(listenForBgScriptResponse))
-      .then(async() => {
+      .then((port) => port.onMessage.addListener(listenForBgScriptResponse))
+      .then(async () => {
         setText("");
-        if (autoSummarize || reqFromError ) await pingBgScriptActiveVideoId();
+        if (autoSummarize || reqFromError) await pingBgScriptActiveVideoId();
         else
           getVideoIdAndTranscriptObject()
             .then(setYoutubeVideoInfo)
-            .then(async() => await pingBgScriptActiveVideoId(false));
-      })
+            .then(async () => await pingBgScriptActiveVideoId(false));
+      });
 
     return () => {
       sendAbortReqBgScript();
-      port()
-        .then(port =>port.onMessage.removeListener(listenForBgScriptResponse))
-    }
+      port().then((port) =>
+        port.onMessage.removeListener(listenForBgScriptResponse)
+      );
+    };
   }, []);
 
   const PrevPageButton = useCallback(
@@ -244,10 +266,10 @@ export default function SummaryBox({
   );
 
   const StopButton = (): JSX.Element => (
-      <button title="Stop summarization" onClick={sendAbortReqBgScript}>
-        <StopIcon />
-      </button>
-  )
+    <button title="Stop summarization" onClick={sendAbortReqBgScript}>
+      <StopIcon />
+    </button>
+  );
 
   const ToggleThemeButton = useCallback(
     (): JSX.Element => (
@@ -294,9 +316,9 @@ export default function SummaryBox({
   const wrapperCssAttrs: Record<string, string> = {
     backgroundColor: isDarkMode ? "#0f0f0f" : "#e8e8e8",
     color: isDarkMode ? "white" : "black",
-    fontSize: "18px",
+    fontSize: "17px",
     borderRadius: "8px",
-    padding: "14px 19px 24px 19px",
+    padding: "14px 27px 24px 27px",
     margin: "0 0 10px 0",
     minHeight: "100px",
   };
@@ -322,7 +344,8 @@ export default function SummaryBox({
         &nbsp;
         <OpenOptionsButton />
         &nbsp;
-        {(text === "loading" || text.match(/^Summarizing (\d+)$/)) &&
+        {(text === "loading" ||
+          text.match(/^Summarizing \(\d+ pages left\)$/)) &&
         youtubeVideoInfo.hasTranscript() ? (
           <StopButton />
         ) : (
@@ -330,7 +353,7 @@ export default function SummaryBox({
         )}
         <div style={{ fontWeight: "600", margin: "15px 0 10px 0" }}>
           {text !== "loading" &&
-            !text.match(/^Summarizing (\d+)$/) &&
+            !text.match(/^Summarizing \(\d+ pages left\)$/) &&
             text !== "options" &&
             text !== "" &&
             youtubeVideoInfo.hasTranscript() &&
@@ -359,15 +382,8 @@ export default function SummaryBox({
   if (OptionsComponent) return <Wrapper elements={[OptionsComponent]} />;
   else if (text === "loading")
     return <Wrapper elements={["Summarizing... ", <Spinner />]} />;
-  else if (text.match(/^Summarizing (\d+)$/))
-    return (
-      <Wrapper
-        elements={[
-          `${text}/${youtubeVideoInfo.transcriptParts.length}`,
-          <Spinner />,
-        ]}
-      />
-    );
+  else if (text.match(/^Summarizing \(\d+ pages left\)$/))
+    return <Wrapper elements={[text, <Spinner />]} />;
   else if (text === "")
     return (
       <Wrapper

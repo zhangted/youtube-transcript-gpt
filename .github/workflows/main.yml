@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - '*'
+      - "*"
 
 jobs:
   build:
@@ -21,7 +21,7 @@ jobs:
 
       - name: Build prod files
         run: npm run build
-      
+
       - name: Zip files
         run: zip -r release.zip ./build
 
@@ -35,5 +35,5 @@ jobs:
           client_id: ${{ secrets.CLIENT_ID }}
           client_secret: ${{ secrets.CLIENT_SECRET }}
           refresh_token: ${{ secrets.ACCESS_TOKEN }}
-          zip_file: 'release.zip'
-          extension_id: 'ibheopmbegmfgmkjpllifpmbciklaeda'
+          zip_file: "release.zip"
+          extension_id: "ibheopmbegmfgmkjpllifpmbciklaeda"

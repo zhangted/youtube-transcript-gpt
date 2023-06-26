@@ -32,7 +32,7 @@ function waitForElm(selector: string) {
 }
 
 function setupPort(): Browser.Runtime.Port {
-  return Browser.runtime.connect()
+  return Browser.runtime.connect();
 }
 
 async function remount() {
@@ -50,8 +50,11 @@ async function updateSummaryWrapper(reqFromError: boolean = false) {
     }
     summaryBox = document.createElement("div");
     summaryBox.id = "summary-wrapper";
-    render(h(SummaryBox, { uuid: tabUUID, automation, remount, reqFromError }), summaryBox);
-    reqFromError = false
+    render(
+      h(SummaryBox, { uuid: tabUUID, automation, remount, reqFromError }),
+      summaryBox
+    );
+    reqFromError = false;
     document
       .querySelector("#secondary.style-scope.ytd-watch-flexy")
       ?.prepend(summaryBox);

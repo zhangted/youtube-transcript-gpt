@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { subscribeToSSE, SSEError } from "./SSE";
 import ExpiryMap from "expiry-map";
 import { getOptionsHash, OptionsHash } from "../../options/options/OptionsHash";
-import getPrompt from "../utils/getPrompt";
+import { getSummaryPrompt } from "../utils/getPrompt";
 import { isVideoIdActive } from "../utils/activeVideoId";
 import { isDuplicateReq, networkReq } from "../utils/activeNetworkReq";
 
@@ -56,8 +56,7 @@ export default async function askChatGPT(
   metadata: string,
   abortSignal: AbortSignal,
   streamingCallback = (gptResponse: string): void => {},
-  handleInvalidCreds = (): void => {},
-  forcedTokenSuggestion: number = 200
+  handleInvalidCreds = (): void => {}
 ) {
   const token: string | undefined = await setupAccessToken();
   const handleInvalidCredsExt = () => {
@@ -97,12 +96,11 @@ export default async function askChatGPT(
   const extensionSettings: OptionsHash = await getOptionsHash();
   const { gpt_language, response_tokens } = extensionSettings;
 
-  const prompt = getPrompt(
+  const prompt = getSummaryPrompt(
     transcript,
     response_tokens,
     gpt_language,
-    metadata,
-    forcedTokenSuggestion
+    metadata
   );
 
   // await logModels(token);
@@ -144,8 +142,12 @@ export default async function askChatGPT(
     switch (sseErr?.status) {
       case 401:
         return handleInvalidCredsExt();
+      case 413:
+        throw err; //too many tokens
       case 429:
-        return;
+        throw err;
+      case 500:
+        throw err;
       default:
         return;
     }

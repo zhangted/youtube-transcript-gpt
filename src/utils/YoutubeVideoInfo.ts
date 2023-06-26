@@ -1,6 +1,6 @@
 import Api from "youtube-browser-api";
 import { MessageFromContentScript } from "../types";
-import splitTextIntoSizeableTokenArrays from "./splitTokens";
+import splitTextIntoSizeableTokenArrays from "./splitTokensInprecise";
 import { getMetadata, getTranscript, transcriptPart } from "./youtubeData";
 
 const videoInfoMap = new Map<string, YoutubeVideoInfo>();

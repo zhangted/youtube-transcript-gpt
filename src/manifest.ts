@@ -5,7 +5,7 @@ export default defineManifest({
   author: "tedcbook@gmail.com",
   description:
     "Get youtube summaries by chatgpt injected automatically if the video has a transcript! ",
-  version: "0.3.2",
+  version: "0.3.4",
   manifest_version: 3,
   icons: {
     16: "img/logo-16.png",
@@ -45,6 +45,6 @@ export default defineManifest({
   host_permissions: ["https://*.openai.com/"],
   content_security_policy: {
     extension_pages:
-      "default-src 'self'; connect-src https://* data: blob: filesystem:;",
+      "default-src 'self' 'wasm-unsafe-eval'; connect-src https://* data: blob: filesystem:;",
   },
 });
